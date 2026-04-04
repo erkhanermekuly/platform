@@ -22,3 +22,53 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+/.vs
+# =============================
+# Visual Studio / ASP.NET Core
+# =============================
+
+# Сборки
+/server/bin/
+/server/obj/
+/server/out/
+
+# Пакеты NuGet
+/server/**/*.nupkg
+/server/packages/
+
+# Локальные пользовательские настройки
+/server/*.user
+/server/*.suo
+/server/*.userosscache
+/server/*.sln.docstates
+
+# VS Code / Rider / IDE
+/server/.vscode/
+/server/.idea/
+/server/.vs/
+
+# Логи
+/server/**/*.log
+
+# publish / docker
+/server/publish/
+server/docker-compose.override.yml
+
+# Rider / Resharper
+/server/.ReSharper*/
+
+# Настройки Rider / JetBrains IDE
+/server/.idea/
+
+# Файлы конфигурации окружения (если хочешь скрыть)
+# /server/appsettings.Development.json
+# /server/appsettings.local.json
+
+# temporary files
+/server/*~
+/server/*.tmp
+
+# Entity Framework Migrations snapshots (опционально)
+/server/Migrations/*Snapshot.cs

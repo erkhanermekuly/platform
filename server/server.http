@@ -1,0 +1,97 @@
+@server_HostAddress = http://localhost:5240/api
+
+### Сброс базы данных
+GET {{server_HostAddress}}/reset
+Accept: application/json
+
+###
+
+### Регистрация пользователя
+POST {{server_HostAddress}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@mail.com",
+  "password": "123456"
+}
+
+###
+
+### Логин пользователя
+POST {{server_HostAddress}}/auth
+Content-Type: application/json
+
+{
+  "email": "test@mail.com",
+  "password": "123456"
+}
+
+###
+
+### Неверный логин (проверка ошибки)
+POST {{server_HostAddress}}/auth
+Content-Type: application/json
+
+{
+  "email": "test@mail.com",
+  "password": "wrongpassword"
+}
+
+###
+
+### Получить все курсы
+GET {{server_HostAddress}}/course
+Accept: application/json
+
+###
+
+### Получить курс по ID
+GET {{server_HostAddress}}/course/1
+Accept: application/json
+
+###
+
+### Создать курс
+POST {{server_HostAddress}}/course
+Content-Type: application/json
+
+{
+  "title": "React для начинающих",
+  "description": "Полный курс по React",
+  "category": "programming",
+  "level": "beginner",
+  "rating": 4.5,
+  "students": 1200,
+  "price": 0,
+  "image": "https://example.com/react.jpg",
+  "instructor": "Иван Иванов",
+  "duration": "10 часов"
+}
+
+###
+
+### Обновить курс
+PUT {{server_HostAddress}}/course/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "title": "React PRO",
+  "description": "Продвинутый курс",
+  "category": "programming",
+  "level": "advanced",
+  "rating": 4.8,
+  "students": 2000,
+  "price": 49.99,
+  "image": "https://example.com/react-pro.jpg",
+  "instructor": "Иван Иванов",
+  "duration": "15 часов"
+}
+
+###
+
+### Удалить курс
+DELETE {{server_HostAddress}}/course/1
+Accept: application/json
+
+###
