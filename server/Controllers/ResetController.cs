@@ -1,18 +1,22 @@
-﻿#if DEBUG
+#if DEBUG
 using Microsoft.AspNetCore.Mvc;
+using server.DTOs;
+using server.Infrastructure;
 
 namespace server.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ResetController(AppDbContext _context) : ControllerBase
+public class ResetController(AppDbContext context) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> InitialData()
     {
-        await _context.Database.EnsureDeletedAsync();
-        await _context.Database.EnsureCreatedAsync();
-        return Ok();
+        await context.Database.EnsureDeletedAsync();
+        await context.Database.EnsureCreatedAsync();
+        await SeedData.InitializeAsync(context);
+
+        return Ok(ApiResponse.Ok("База сброшена и заполнена тестовыми данными"));
     }
 }
 #endif

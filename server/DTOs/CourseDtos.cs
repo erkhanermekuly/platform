@@ -1,16 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace server.Models;
+namespace server.DTOs;
 
-public class CourseModel
+public class CourseUpsertDto
 {
-    public int Id { get; set; }
-
     [Required]
+    [MinLength(3)]
     [MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 
     [Required]
+    [MinLength(10)]
     [MaxLength(2000)]
     public string Description { get; set; } = string.Empty;
 
@@ -22,20 +22,15 @@ public class CourseModel
     [MaxLength(80)]
     public string Level { get; set; } = string.Empty;
 
-    [Range(0, 5)]
-    public double Rating { get; set; }
-
-    [Range(0, int.MaxValue)]
-    public int Students { get; set; }
-
     [Range(0, 999999)]
     public decimal Price { get; set; }
 
     [MaxLength(1024)]
     public string? Image { get; set; }
 
+    [Required]
     [MaxLength(120)]
-    public string InstructorName { get; set; } = string.Empty;
+    public string Instructor { get; set; } = string.Empty;
 
     [MaxLength(1024)]
     public string? InstructorAvatar { get; set; }
@@ -45,10 +40,24 @@ public class CourseModel
 
     [MaxLength(100)]
     public string? Duration { get; set; }
+}
 
-    public ICollection<CourseModuleModel> Modules { get; set; } = [];
+public class UpdateProgressDto
+{
+    [Range(1, int.MaxValue)]
+    public int LessonId { get; set; }
 
-    public ICollection<ReviewModel> Reviews { get; set; } = [];
+    [Range(0, 100)]
+    public int Progress { get; set; }
+}
 
-    public ICollection<LearningModel> Enrollments { get; set; } = [];
+public class AddReviewDto
+{
+    [Range(1, 5)]
+    public int Rating { get; set; }
+
+    [Required]
+    [MinLength(3)]
+    [MaxLength(2000)]
+    public string Text { get; set; } = string.Empty;
 }
