@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { AppProvider } from './context/AppContext'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import CoursesPage from './pages/CoursesPage'
@@ -13,16 +14,18 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Navbar />
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/courses" element={<CoursesPage />} />
-            <Route path="/course/:courseId" element={<CourseDetailsPage />} />
-            <Route path="/my-learning" element={<MyLearningPage />} />
-            <Route path="/login" element={<AuthPage />} />
-          </Routes>
-        </main>
+        <AppProvider>
+          <Navbar />
+          <main>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/course/:courseId" element={<CourseDetailsPage />} />
+              <Route path="/my-learning" element={<MyLearningPage />} />
+              <Route path="/login" element={<AuthPage />} />
+            </Routes>
+          </main>
+        </AppProvider>
       </AuthProvider>
     </Router>
   )

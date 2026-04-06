@@ -16,18 +16,38 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
-          <h1>Добро пожаловать на LearnHub</h1>
-          <p>Обучайтесь новым навыкам в удобное время</p>
+          <h1>Добро пожаловать в LearnHub</h1>
+          <p>
+            Курсы и материалы для педагогов дошкольного образования — в спокойном темпе и в удобное время.
+          </p>
           <Link to="/courses" className="btn btn-primary btn-large">
             Начать обучение
           </Link>
         </div>
-        <div className="hero-image">
-          <svg width="400" height="300" viewBox="0 0 400 300">
-            <circle cx="200" cy="150" r="120" fill="#e0e7ff" />
-            <rect x="150" y="100" width="100" height="100" fill="#6366f1" rx="10" />
-            <text x="200" y="160" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold">
-              Learn
+        <div className="hero-image" aria-hidden>
+          <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="heroOrb" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8fd9c8" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="#5eb8a8" stopOpacity="0.75" />
+              </linearGradient>
+              <linearGradient id="heroCard" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#1e4d5c" />
+                <stop offset="100%" stopColor="#0f2744" />
+              </linearGradient>
+            </defs>
+            <circle cx="200" cy="150" r="118" fill="url(#heroOrb)" opacity="0.85" />
+            <rect x="138" y="88" width="124" height="124" fill="url(#heroCard)" rx="22" />
+            <text
+              x="200"
+              y="158"
+              textAnchor="middle"
+              fill="#f0fdf9"
+              fontSize="22"
+              fontWeight="600"
+              fontFamily="system-ui, -apple-system, sans-serif"
+            >
+              LearnHub
             </text>
           </svg>
         </div>
