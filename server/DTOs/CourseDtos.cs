@@ -18,19 +18,22 @@ public class CourseUpsertDto
     [MaxLength(80)]
     public string Category { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(80)]
-    public string Level { get; set; } = string.Empty;
+    public string? Level { get; set; }
 
     [Range(0, 999999)]
     public decimal Price { get; set; }
 
+    public bool? IsLocked { get; set; }
+
+    [MaxLength(1024)]
+    public string? VideoUrl { get; set; }
+
     [MaxLength(1024)]
     public string? Image { get; set; }
 
-    [Required]
     [MaxLength(120)]
-    public string Instructor { get; set; } = string.Empty;
+    public string? Instructor { get; set; }
 
     [MaxLength(1024)]
     public string? InstructorAvatar { get; set; }
@@ -60,4 +63,18 @@ public class AddReviewDto
     [MinLength(3)]
     [MaxLength(2000)]
     public string Text { get; set; } = string.Empty;
+}
+
+public class ProcessPaymentDto
+{
+    [Range(1, int.MaxValue)]
+    public int CourseId { get; set; }
+
+    public decimal? Amount { get; set; }
+
+    [MaxLength(120)]
+    public string? CardHolder { get; set; }
+
+    [MaxLength(30)]
+    public string? CardNumber { get; set; }
 }

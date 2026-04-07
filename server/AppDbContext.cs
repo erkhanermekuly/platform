@@ -11,9 +11,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<CourseModuleModel> CourseModules { get; set; }
 
+    public DbSet<CourseFileModel> CourseFiles { get; set; }
+
     public DbSet<LearningModel> Learnings { get; set; }
 
     public DbSet<ReviewModel> Reviews { get; set; }
+
+    public DbSet<PaymentModel> Payments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -23,9 +27,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(x => x.Email)
             .IsUnique();
 
+        modelBuilder.Entity<CourseModel>()
+            .HasOne(x => x.CreatedByAccount)
+            .WithMany(x => x.CreatedCourses)
+            .HasForeignKey(x => x.CreatedByAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         modelBuilder.Entity<CourseModuleModel>()
             .HasOne(x => x.Course)
             .WithMany(x => x.Modules)
+            .HasForeignKey(x => x.CourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CourseFileModel>()
+            .HasOne(x => x.Course)
+            .WithMany(x => x.Files)
             .HasForeignKey(x => x.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -54,6 +70,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<ReviewModel>()
             .HasOne(x => x.Course)
             .WithMany(x => x.Reviews)
+            .HasForeignKey(x => x.CourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PaymentModel>()
+            .HasOne(x => x.Account)
+            .WithMany(x => x.Payments)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PaymentModel>()
+            .HasOne(x => x.Course)
+            .WithMany(x => x.Payments)
             .HasForeignKey(x => x.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
     }

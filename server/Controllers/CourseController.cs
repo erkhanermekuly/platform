@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.DTOs;
 using server.Models;
+using System.Security.Claims;
 
 namespace server.Controllers;
 
@@ -44,6 +46,43 @@ public class CourseController(AppDbContext context) : ControllerBase
                 category = c.Category,
                 level = c.Level,
                 price = c.Price,
+                isLocked = c.IsLocked,
+                videoUrl = c.VideoUrl,
+                image = c.Image,
+                instructor = c.InstructorName,
+                rating = c.Rating,
+                students = c.Students,
+                duration = c.Duration
+            })
+            .ToListAsync();
+
+        return Ok(ApiResponse<object>.Ok(courses));
+    }
+
+    [Authorize]
+    [HttpGet("my-courses")]
+    public async Task<IActionResult> GetMyCourses()
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var courses = await context.Courses
+            .AsNoTracking()
+            .Where(c => c.CreatedByAccountId == userId)
+            .OrderByDescending(c => c.Id)
+            .Select(c => new
+            {
+                id = c.Id,
+                title = c.Title,
+                description = c.Description,
+                category = c.Category,
+                level = c.Level,
+                price = c.Price,
+                isLocked = c.IsLocked,
+                videoUrl = c.VideoUrl,
                 image = c.Image,
                 instructor = c.InstructorName,
                 rating = c.Rating,
@@ -81,6 +120,7 @@ public class CourseController(AppDbContext context) : ControllerBase
     {
         var course = await context.Courses
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
+            .Include(c => c.Files.OrderByDescending(f => f.UploadedAt))
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id);
 
@@ -97,6 +137,8 @@ public class CourseController(AppDbContext context) : ControllerBase
             category = course.Category,
             level = course.Level,
             price = course.Price,
+            isLocked = course.IsLocked,
+            videoUrl = course.VideoUrl,
             image = course.Image,
             instructor = new
             {
@@ -114,12 +156,22 @@ public class CourseController(AppDbContext context) : ControllerBase
                 title = m.Title,
                 lessons = m.Lessons,
                 duration = m.Duration
+            }),
+            files = course.Files.Select(f => new
+            {
+                id = f.Id,
+                name = f.Name,
+                type = f.Type,
+                sizeBytes = f.SizeBytes,
+                uploadedAt = f.UploadedAt,
+                url = $"/api/courses/{course.Id}/files/{f.Id}/download"
             })
         };
 
         return Ok(ApiResponse<object>.Ok(result));
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateCourse([FromBody] CourseUpsertDto dto)
     {
@@ -128,20 +180,25 @@ public class CourseController(AppDbContext context) : ControllerBase
             return BadRequest(ApiResponse.Error("Некорректные данные"));
         }
 
+        var userId = GetUserId();
+
         var course = new CourseModel
         {
             Title = dto.Title,
             Description = dto.Description,
             Category = dto.Category,
-            Level = dto.Level,
+            Level = NormalizeLevel(dto.Level, dto.Category),
             Price = dto.Price,
+            IsLocked = dto.IsLocked ?? dto.Price > 0,
+            VideoUrl = dto.VideoUrl,
             Image = dto.Image,
-            InstructorName = dto.Instructor,
+            InstructorName = string.IsNullOrWhiteSpace(dto.Instructor) ? "Не указан" : dto.Instructor,
             InstructorAvatar = dto.InstructorAvatar,
             InstructorBio = dto.InstructorBio,
             Duration = dto.Duration,
             Rating = 0,
-            Students = 0
+            Students = 0,
+            CreatedByAccountId = userId
         };
 
         context.Courses.Add(course);
@@ -150,6 +207,7 @@ public class CourseController(AppDbContext context) : ControllerBase
         return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, ApiResponse<object>.Ok(new { id = course.Id }));
     }
 
+    [Authorize]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateCourse(int id, [FromBody] CourseUpsertDto dto)
     {
@@ -167,10 +225,12 @@ public class CourseController(AppDbContext context) : ControllerBase
         course.Title = dto.Title;
         course.Description = dto.Description;
         course.Category = dto.Category;
-        course.Level = dto.Level;
+        course.Level = NormalizeLevel(dto.Level, dto.Category);
         course.Price = dto.Price;
+        course.IsLocked = dto.IsLocked ?? dto.Price > 0;
+        course.VideoUrl = dto.VideoUrl;
         course.Image = dto.Image;
-        course.InstructorName = dto.Instructor;
+        course.InstructorName = string.IsNullOrWhiteSpace(dto.Instructor) ? course.InstructorName : dto.Instructor;
         course.InstructorAvatar = dto.InstructorAvatar;
         course.InstructorBio = dto.InstructorBio;
         course.Duration = dto.Duration;
@@ -180,6 +240,7 @@ public class CourseController(AppDbContext context) : ControllerBase
         return Ok(ApiResponse.Ok("Курс обновлен"));
     }
 
+    [Authorize]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteCourse(int id)
     {
@@ -194,5 +255,27 @@ public class CourseController(AppDbContext context) : ControllerBase
         await context.SaveChangesAsync();
 
         return Ok(ApiResponse.Ok("Курс удален"));
+    }
+
+    private int? GetUserId()
+    {
+        var rawId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(rawId, out var userId) ? userId : null;
+    }
+
+    private static string NormalizeLevel(string? level, string category)
+    {
+        if (!string.IsNullOrWhiteSpace(level))
+        {
+            return level.Trim().ToLower();
+        }
+
+        return category.Trim().ToLower() switch
+        {
+            "beginner" => "beginner",
+            "intermediate" => "intermediate",
+            "advanced" => "advanced",
+            _ => "beginner"
+        };
     }
 }

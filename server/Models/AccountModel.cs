@@ -18,10 +18,17 @@ public class AccountModel
     [Required]
     public string PasswordHash { get; set; } = string.Empty;
 
+    [MaxLength(20)]
+    public string Role { get; set; } = "teacher";
+
     [MaxLength(512)]
     public string Avatar { get; set; } = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200";
+
+    public ICollection<CourseModel> CreatedCourses { get; set; } = [];
 
     public ICollection<LearningModel> Enrollments { get; set; } = [];
 
     public ICollection<ReviewModel> Reviews { get; set; } = [];
+
+    public ICollection<PaymentModel> Payments { get; set; } = [];
 }

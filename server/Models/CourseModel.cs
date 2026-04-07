@@ -31,6 +31,11 @@ public class CourseModel
     [Range(0, 999999)]
     public decimal Price { get; set; }
 
+    public bool IsLocked { get; set; }
+
+    [MaxLength(1024)]
+    public string? VideoUrl { get; set; }
+
     [MaxLength(1024)]
     public string? Image { get; set; }
 
@@ -46,9 +51,17 @@ public class CourseModel
     [MaxLength(100)]
     public string? Duration { get; set; }
 
+    public int? CreatedByAccountId { get; set; }
+
+    public AccountModel? CreatedByAccount { get; set; }
+
     public ICollection<CourseModuleModel> Modules { get; set; } = [];
+
+    public ICollection<CourseFileModel> Files { get; set; } = [];
 
     public ICollection<ReviewModel> Reviews { get; set; } = [];
 
     public ICollection<LearningModel> Enrollments { get; set; } = [];
+
+    public ICollection<PaymentModel> Payments { get; set; } = [];
 }

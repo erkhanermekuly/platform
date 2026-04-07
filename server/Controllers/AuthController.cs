@@ -1,7 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization;
 using server.DTOs;
 using server.Models;
 using System.IdentityModel.Tokens.Jwt;
@@ -27,10 +27,13 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
             return BadRequest(ApiResponse.Error("Пользователь с таким email уже существует"));
         }
 
+        var normalizedRole = NormalizeRole(dto.Role);
+
         var account = new AccountModel
         {
             Name = dto.Name,
             Email = dto.Email,
+            Role = normalizedRole,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
@@ -47,6 +50,7 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
                 id = account.Id,
                 name = account.Name,
                 email = account.Email,
+                role = account.Role,
                 avatar = account.Avatar
             }
         }));
@@ -78,6 +82,7 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
                 id = account.Id,
                 name = account.Name,
                 email = account.Email,
+                role = account.Role,
                 avatar = account.Avatar
             }
         }));
@@ -87,10 +92,11 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
     [Authorize]
     public IActionResult Logout()
     {
-        return Ok(ApiResponse.Ok());
+        return Ok(ApiResponse.Ok("Вы успешно вышли из системы"));
     }
 
     [HttpGet("me")]
+    [HttpGet("profile")]
     [Authorize]
     public async Task<IActionResult> Me()
     {
@@ -112,6 +118,7 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
             id = account.Id,
             name = account.Name,
             email = account.Email,
+            role = account.Role,
             avatar = account.Avatar
         }));
     }
@@ -122,7 +129,8 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
         {
             new Claim(ClaimTypes.NameIdentifier, account.Id.ToString()),
             new Claim(ClaimTypes.Email, account.Email),
-            new Claim(ClaimTypes.Name, account.Name)
+            new Claim(ClaimTypes.Name, account.Name),
+            new Claim(ClaimTypes.Role, account.Role)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"] ?? throw new Exception("Key not installed")));
@@ -137,5 +145,14 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string NormalizeRole(string? role)
+    {
+        return role?.Trim().ToLower() switch
+        {
+            "admin" => "admin",
+            _ => "teacher"
+        };
     }
 }
