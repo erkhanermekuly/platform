@@ -16,7 +16,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
-          <h1>Добро пожаловать в LearnHub</h1>
+          <h1>Добро пожаловать в BilimAll</h1>
           <p>
             Курсы и материалы для педагогов дошкольного образования — в спокойном темпе и в удобное время.
           </p>
@@ -47,7 +47,7 @@ export default function HomePage() {
               fontWeight="600"
               fontFamily="system-ui, -apple-system, sans-serif"
             >
-              LearnHub
+              BilimAll
             </text>
           </svg>
         </div>
@@ -55,7 +55,7 @@ export default function HomePage() {
 
       {/* Features Section */}
       <section className="features-section">
-        <h2>Почему LearnHub?</h2>
+        <h2>Почему BilimAll?</h2>
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">📚</div>

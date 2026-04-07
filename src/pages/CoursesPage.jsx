@@ -1,12 +1,14 @@
 import { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import CourseCard from '../components/CourseCard/CourseCard';
 import PaymentModal from '../components/PaymentModal/PaymentModal';
 import AdminPanel from '../components/AdminPanel/AdminPanel';
 import '../styles/pages.css';
 
 export default function CoursesPage() {
-  const { courses, userRole, purchasedCourses, buyCourse, addCourse, deleteCourse, toggleRole } = useContext(AppContext);
+  const { courses, purchasedCourses, buyCourse, addCourse, deleteCourse } = useContext(AppContext);
+  const { userRole } = useAuth();
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
@@ -41,26 +43,6 @@ export default function CoursesPage() {
   if (userRole === 'admin') {
     return (
       <div style={{ minHeight: '100vh' }}>
-        <div style={{ padding: '20px', background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)', marginBottom: '20px' }}>
-          <button
-            onClick={toggleRole}
-            style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-              display: 'flex',
-              padding: '12px 20px',
-              background: 'white',
-              border: '2px solid #f59e0b',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              color: '#1f2937',
-              fontSize: '14px'
-            }}
-          >
-            👉 Переключиться на роль "Учитель"
-          </button>
-        </div>
         <AdminPanel
           courses={courses}
           onAddCourse={handleAddCourse}
@@ -81,21 +63,6 @@ export default function CoursesPage() {
         <p style={{ fontSize: '16px', color: '#6b7280', margin: '0 0 20px' }}>
           Выбери курс и начни обучение
         </p>
-        <button
-          onClick={toggleRole}
-          style={{
-            padding: '10px 20px',
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            fontSize: '14px'
-          }}
-        >
-          🔐 Переключиться на роль "Администратор"
-        </button>
       </div>
 
       {/* Courses Grid */}

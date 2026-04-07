@@ -1,20 +1,18 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/pages.css';
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    password: '',
-    confirmPassword: ''
+    password: ''
   });
 
   const handleChange = (e) => {
@@ -31,31 +29,13 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        // Login
-        if (!formData.email || !formData.password) {
-          setError('Заполните все поля');
-          return;
-        }
-        await login(formData.email, formData.password);
-      } else {
-        // Register
-        if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-          setError('Заполните все поля');
-          return;
-        }
-        if (formData.password !== formData.confirmPassword) {
-          setError('Пароли не совпадают');
-          return;
-        }
-        if (formData.password.length < 6) {
-          setError('Пароль должен быть не менее 6 символов');
-          return;
-        }
-        await register(formData.name, formData.email, formData.password);
+      if (!formData.email || !formData.password) {
+        setError('Заполните все поля');
+        return;
       }
 
-      navigate('/');
+      await login(formData.email, formData.password);
+      navigate(location.state?.from || '/courses', { replace: true });
     } catch (err) {
       setError(err.message || 'Ошибка при авторизации');
     } finally {
@@ -69,31 +49,13 @@ export default function AuthPage() {
         <div className="auth-card">
           {/* Header */}
           <div className="auth-header">
-            <h1>{isLogin ? 'Вход' : 'Регистрация'}</h1>
-            <p>
-              {isLogin ? 'Введите свои данные для входа' : 'Создайте новый аккаунт'}
-            </p>
+            <h1>Вход в платформу</h1>
+            <p>Доступ возможен только для пользователей, добавленных администратором</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="auth-form">
             {error && <div className="error-message">{error}</div>}
-
-            {/* Name Field (Register only) */}
-            {!isLogin && (
-              <div className="form-group">
-                <label htmlFor="name">Имя</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Введите ваше имя"
-                  className="form-input"
-                />
-              </div>
-            )}
 
             {/* Email Field */}
             <div className="form-group">
@@ -145,32 +107,14 @@ export default function AuthPage() {
               disabled={loading}
               className="btn btn-primary btn-large"
             >
-              {loading ? 'Загрузка...' : isLogin ? 'Вход' : 'Создать аккаунт'}
+              {loading ? 'Загрузка...' : 'Войти'}
             </button>
           </form>
 
-          {/* Toggle */}
-          <div className="auth-toggle">
-            <p>
-              {isLogin ? 'У вас нет аккаунта?' : 'У вас есть аккаунт?'}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setError('');
-                  setFormData({ name: '', email: '', password: '', confirmPassword: '' });
-                }}
-                className="toggle-btn"
-              >
-                {isLogin ? 'Зарегистрируйтесь' : 'Войдите'}
-              </button>
-            </p>
-          </div>
-
           {/* Demo Credentials */}
           <div className="demo-credentials">
-            <p>Демо данные:</p>
-            <code>Email: demo@example.com | Пароль: password</code>
+            <p>Вход через аккаунт из базы данных</p>
+            <code>Если аккаунта нет, администратор должен создать пользователя на сервере.</code>
           </div>
         </div>
 

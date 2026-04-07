@@ -1,10 +1,13 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { authAPI } from '../api/courseService';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -68,9 +71,11 @@ export const AuthProvider = ({ children }) => {
     error,
     token,
     isAuthenticated: !!token,
+    userRole: user?.role || null,
     login,
     register,
-    logout
+    logout,
+    hasRole: useMemo(() => (role) => user?.role === role, [user])
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

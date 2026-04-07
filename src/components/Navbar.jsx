@@ -15,6 +15,10 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
+  if (location.pathname === '/login') {
+    return null;
+  }
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -37,8 +41,8 @@ export default function Navbar() {
         {/* Navigation Links */}
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
           <Link
-            to="/"
-            className={`nav-link ${isActive('/') ? 'active' : ''}`}
+            to="/home"
+            className={`nav-link ${isActive('/home') ? 'active' : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
             Главная
@@ -87,9 +91,6 @@ export default function Navbar() {
             <div className="auth-buttons">
               <Link to="/login" className="btn btn-secondary">
                 Вход
-              </Link>
-              <Link to="/login" className="btn btn-primary">
-                Регистрация
               </Link>
             </div>
           )}
