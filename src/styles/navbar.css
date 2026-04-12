@@ -106,15 +106,15 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #4ab89e, #6ecfb8);
+  background: linear-gradient(90deg, #3b6fd8, #6b9aeb);
   transform: scaleX(0);
   transform-origin: center;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-link:hover {
-  color: #1a5c52;
-  background-color: rgba(74, 184, 158, 0.1);
+  color: #1e3a8a;
+  background-color: rgba(59, 111, 216, 0.1);
 }
 
 .nav-link:hover::before {
@@ -123,7 +123,7 @@
 
 .nav-link.active {
   color: #0f2744;
-  background-color: rgba(74, 184, 158, 0.14);
+  background-color: rgba(59, 111, 216, 0.14);
 }
 
 .nav-link.active::before {
@@ -149,26 +149,26 @@
 }
 
 .auth-buttons .btn-primary {
-  background: linear-gradient(180deg, #6ecfb8 0%, #4ab89e 100%);
-  color: #0c1f33;
+  background: linear-gradient(180deg, #4e7ee8 0%, #2b52b5 100%);
+  color: #fff;
   border: none;
 }
 
 .auth-buttons .btn-primary:hover {
-  background: linear-gradient(180deg, #7edcc5 0%, #56c4a8 100%);
-  color: #0c1f33;
+  background: linear-gradient(180deg, #5b8def 0%, #3b6fd8 100%);
+  color: #fff;
 }
 
 .auth-buttons .btn-secondary {
-  color: #1a5c52;
-  border: 2px solid rgba(74, 184, 158, 0.45);
+  color: #1e3a8a;
+  border: 2px solid rgba(59, 111, 216, 0.45);
   background: transparent;
 }
 
 .auth-buttons .btn-secondary:hover {
-  background: rgba(74, 184, 158, 0.12);
+  background: rgba(59, 111, 216, 0.1);
   color: #0f2744;
-  border-color: rgba(74, 184, 158, 0.55);
+  border-color: rgba(59, 111, 216, 0.55);
 }
 
 /* User Menu */
@@ -192,9 +192,9 @@
 }
 
 .user-avatar:hover {
-  border-color: #4ab89e;
+  border-color: #3b6fd8;
   transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(74, 184, 158, 0.28);
+  box-shadow: 0 4px 16px rgba(59, 111, 216, 0.28);
 }
 
 .user-name {
@@ -246,8 +246,8 @@
 }
 
 .dropdown-item:hover {
-  background-color: #f0faf8;
-  color: #1a5c52;
+  background-color: #eff6ff;
+  color: #1e3a8a;
 }
 
 .dropdown-item:first-child {

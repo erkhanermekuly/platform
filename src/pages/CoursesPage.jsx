@@ -91,15 +91,13 @@ export default function CoursesPage() {
     return (
       <div style={{ minHeight: '100vh', padding: 40, textAlign: 'center' }}>
         <p style={{ color: '#b91c1c' }}>Не удалось загрузить курсы: {coursesError}</p>
-        <Link to="/api-check" style={{ marginTop: 12, display: 'inline-block' }}>
-          Проверить API
-        </Link>
+      
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '40px 20px' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #e8eef9 0%, #f0f4ff 45%, #e9ecf5 100%)', padding: '40px 20px' }}>
       {/* Header */}
       <div style={{ maxWidth: '1200px', margin: '0 auto 40px', textAlign: 'center' }}>
         <h1 style={{ fontSize: '32px', fontWeight: '700', color: '#1f2937', margin: '0 0 12px' }}>
@@ -108,9 +106,7 @@ export default function CoursesPage() {
         <p style={{ fontSize: '16px', color: '#6b7280', margin: '0 0 20px' }}>
           Выбери курс и начни обучение
         </p>
-        <Link to="/api-check" style={{ fontSize: '14px', color: '#059669' }}>
-          Проверка эндпоинтов API
-        </Link>
+       
       </div>
 
       {/* Courses Grid */}

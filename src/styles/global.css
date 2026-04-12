@@ -7,10 +7,10 @@
 }
 
 :root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --primary-light: #818cf8;
-  --secondary: #a855f7;
+  --primary: #3b6fd8;
+  --primary-dark: #2b52b5;
+  --primary-light: #6b9aeb;
+  --secondary: #5b8def;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
