@@ -27,13 +27,12 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
             return BadRequest(ApiResponse.Error("Пользователь с таким email уже существует"));
         }
 
-        var normalizedRole = NormalizeRole(dto.Role);
-
+        // Публичная регистрация — только студент; роли admin/teacher задаёт администратор
         var account = new AccountModel
         {
             Name = dto.Name,
             Email = dto.Email,
-            Role = normalizedRole,
+            Role = "student",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
@@ -147,12 +146,4 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static string NormalizeRole(string? role)
-    {
-        return role?.Trim().ToLower() switch
-        {
-            "admin" => "admin",
-            _ => "teacher"
-        };
-    }
 }

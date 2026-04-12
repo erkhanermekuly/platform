@@ -61,4 +61,28 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+var initDb =
+    app.Environment.IsDevelopment()
+    || app.Configuration.GetValue<bool>("Seed:RunOnStartup");
+
+if (initDb)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var createdNew = await db.Database.EnsureCreatedAsync();
+        await DatabaseSeeder.SeedIfEmptyAsync(db);
+        app.Logger.LogInformation(
+            "БД: EnsureCreated (новая схема={Created}). Сид выполнен, если не было курсов.",
+            createdNew);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(
+            ex,
+            "Инициализация БД не удалась (таблицы в MySQL не появятся). Проверьте, что MySQL запущен, база platform существует и строка подключения в appsettings верна.");
+    }
+}
+
 app.Run();

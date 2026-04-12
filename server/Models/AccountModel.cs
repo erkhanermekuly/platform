@@ -12,7 +12,7 @@ public class AccountModel
 
     [Required]
     [EmailAddress]
-    [MaxLength(256)]
+    [MaxLength(191)]
     public string Email { get; set; } = string.Empty;
 
     [Required]

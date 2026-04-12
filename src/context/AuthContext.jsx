@@ -17,13 +17,16 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const response = await authAPI.login(email, password);
-      if (response.success) {
+      if (response?.success && response.data) {
         setUser(response.data.user);
         setToken(response.data.token);
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
       }
+      const msg = response?.message || 'Вход не выполнен';
+      setError(msg);
+      throw new Error(msg);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -37,13 +40,16 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const response = await authAPI.register(name, email, password);
-      if (response.success) {
+      if (response?.success && response.data) {
         setUser(response.data.user);
         setToken(response.data.token);
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         return response.data;
       }
+      const msg = response?.message || 'Регистрация не выполнена';
+      setError(msg);
+      throw new Error(msg);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -55,12 +61,15 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     setLoading(true);
     try {
-      await authAPI.logout();
+      const t = localStorage.getItem('token');
+      if (t) {
+        await authAPI.logout().catch(() => {});
+      }
+    } finally {
       setUser(null);
       setToken(null);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-    } finally {
       setLoading(false);
     }
   }, []);

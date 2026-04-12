@@ -3,7 +3,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5240/api';
 
 const buildUrl = (path, query = {}) => {
-  const url = new URL(`${API_BASE_URL}${path}`);
+  const joined = `${API_BASE_URL.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+  const url = joined.startsWith('http')
+    ? new URL(joined)
+    : new URL(joined, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
   Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.set(key, value);
@@ -13,6 +16,36 @@ const buildUrl = (path, query = {}) => {
 };
 
 const getAuthToken = () => localStorage.getItem('token');
+
+function parseErrorMessage(response, text, payload) {
+  if (payload && typeof payload === 'object') {
+    // ASP.NET ValidationProblemDetails: сначала детали полей, не общий title
+    const errs = payload.errors;
+    if (errs && typeof errs === 'object' && Object.keys(errs).length > 0) {
+      const lines = Object.entries(errs).flatMap(([key, val]) => {
+        if (Array.isArray(val)) return val.map((m) => `${key}: ${m}`);
+        return [`${key}: ${val}`];
+      });
+      if (lines.length) return lines.join('; ');
+    }
+
+    const direct =
+      payload.message ||
+      payload.Message ||
+      payload.error ||
+      payload.title ||
+      payload.Title;
+    if (direct) return String(direct);
+  }
+
+  const trimmed = (text || '').replace(/\s+/g, ' ').trim();
+  if (trimmed.startsWith('<')) {
+    return `Сервер вернул страницу ошибки (${response.status}), а не JSON — проверьте лог dotnet и что API слушает порт 5240.`;
+  }
+  if (trimmed.length > 0 && trimmed.length < 400) return trimmed;
+
+  return `Запрос не выполнен (${response.status} ${response.statusText || ''}).`.trim();
+}
 
 const request = async (path, options = {}, query = {}) => {
   const token = getAuthToken();
@@ -25,16 +58,32 @@ const request = async (path, options = {}, query = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(buildUrl(path, query), {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(buildUrl(path, query), {
+      ...options,
+      headers,
+    });
+  } catch (e) {
+    const msg =
+      e?.name === 'TypeError' && String(e?.message || '').includes('fetch')
+        ? 'Нет связи с API. Запустите сервер: dotnet run в папке server (порт 5240) и оставьте Vite-прокси на /api.'
+        : e?.message || 'Сетевая ошибка';
+    throw new Error(msg);
+  }
 
-  const payload = await response.json().catch(() => null);
+  const text = await response.text();
+  let payload = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = null;
+    }
+  }
 
   if (!response.ok) {
-    const serverMessage = payload?.message || payload?.error || 'Request failed';
-    throw new Error(serverMessage);
+    throw new Error(parseErrorMessage(response, text, payload));
   }
 
   return payload;
@@ -60,10 +109,10 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: async (name, email, password, role = 'teacher') =>
+  register: async (name, email, password) =>
     request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, role }),
+      body: JSON.stringify({ name, email, password }),
     }),
 
   logout: async () => request('/auth/logout', { method: 'POST' }),

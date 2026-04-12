@@ -1,34 +1,50 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
-import { useAuth } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { AppProvider } from './context/AppContext'
+import { hasCourseAccess } from './auth/roles'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import CoursesPage from './pages/CoursesPage'
 import CourseDetailsPage from './pages/CourseDetailsPage'
 import MyLearningPage from './pages/MyLearningPage'
 import AuthPage from './pages/AuthPage'
+import RegisterPage from './pages/RegisterPage'
+import PendingAccessPage from './pages/PendingAccessPage'
+import ApiCheckPage from './pages/ApiCheckPage'
 import './styles/global.css'
 import './App.css'
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+function CourseAccessRoute({ children }) {
+  const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
-
+  if (!hasCourseAccess(userRole)) {
+    return <Navigate to="/pending" replace />;
+  }
   return children;
 }
 
-function PublicOnlyRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+function PendingOnlyRoute({ children }) {
+  const { isAuthenticated, userRole } = useAuth();
 
-  if (isAuthenticated) {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  if (hasCourseAccess(userRole)) {
     return <Navigate to="/courses" replace />;
   }
+  return children;
+}
 
+function PublicAuthRoute({ children }) {
+  const { isAuthenticated, userRole } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to={hasCourseAccess(userRole) ? '/courses' : '/pending'} replace />;
+  }
   return children;
 }
 
@@ -44,43 +60,60 @@ function App() {
               <Route
                 path="/login"
                 element={
-                  <PublicOnlyRoute>
+                  <PublicAuthRoute>
                     <AuthPage />
-                  </PublicOnlyRoute>
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicAuthRoute>
+                    <RegisterPage />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/pending"
+                element={
+                  <PendingOnlyRoute>
+                    <PendingAccessPage />
+                  </PendingOnlyRoute>
                 }
               />
               <Route
                 path="/home"
                 element={
-                  <ProtectedRoute>
+                  <CourseAccessRoute>
                     <HomePage />
-                  </ProtectedRoute>
+                  </CourseAccessRoute>
                 }
               />
               <Route
                 path="/courses"
                 element={
-                  <ProtectedRoute>
+                  <CourseAccessRoute>
                     <CoursesPage />
-                  </ProtectedRoute>
+                  </CourseAccessRoute>
                 }
               />
               <Route
                 path="/course/:courseId"
                 element={
-                  <ProtectedRoute>
+                  <CourseAccessRoute>
                     <CourseDetailsPage />
-                  </ProtectedRoute>
+                  </CourseAccessRoute>
                 }
               />
               <Route
                 path="/my-learning"
                 element={
-                  <ProtectedRoute>
+                  <CourseAccessRoute>
                     <MyLearningPage />
-                  </ProtectedRoute>
+                  </CourseAccessRoute>
                 }
               />
+              <Route path="/api-check" element={<ApiCheckPage />} />
             </Routes>
           </main>
         </AppProvider>

@@ -17,9 +17,6 @@ public class RegisterDto
     [MinLength(6)]
     [MaxLength(100)]
     public string Password { get; set; } = string.Empty;
-
-    [MaxLength(20)]
-    public string? Role { get; set; }
 }
 
 public class LoginDto

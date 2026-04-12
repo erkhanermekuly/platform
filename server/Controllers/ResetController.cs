@@ -14,7 +14,7 @@ public class ResetController(AppDbContext context) : ControllerBase
     {
         await context.Database.EnsureDeletedAsync();
         await context.Database.EnsureCreatedAsync();
-        await SeedData.InitializeAsync(context);
+        await DatabaseSeeder.SeedIfEmptyAsync(context);
 
         return Ok(ApiResponse.Ok("База сброшена и заполнена тестовыми данными"));
     }

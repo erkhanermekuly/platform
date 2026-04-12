@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { hasCourseAccess } from '../auth/roles';
 import '../styles/navbar.css';
 
 export default function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, userRole } = useAuth();
+  const canCourses = hasCourseAccess(userRole);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
@@ -15,7 +17,7 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  if (location.pathname === '/login') {
+  if (location.pathname === '/login' || location.pathname === '/register') {
     return null;
   }
 
@@ -23,7 +25,10 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         {/* Logo */}
-        <Link to="/" className="navbar-logo">
+        <Link
+          to={isAuthenticated ? (canCourses ? '/courses' : '/pending') : '/login'}
+          className="navbar-logo"
+        >
           <span className="logo-icon">📚</span>
           <span className="logo-text">LearnHub</span>
         </Link>
@@ -40,28 +45,38 @@ export default function Navbar() {
 
         {/* Navigation Links */}
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
-          <Link
-            to="/home"
-            className={`nav-link ${isActive('/home') ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Главная
-          </Link>
-          <Link
-            to="/courses"
-            className={`nav-link ${isActive('/courses') ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Курсы
-          </Link>
-
-          {isAuthenticated && (
+          {canCourses && (
+            <>
+              <Link
+                to="/home"
+                className={`nav-link ${isActive('/home') ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Главная
+              </Link>
+              <Link
+                to="/courses"
+                className={`nav-link ${isActive('/courses') ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Курсы
+              </Link>
+              <Link
+                to="/my-learning"
+                className={`nav-link ${isActive('/my-learning') ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Мое обучение
+              </Link>
+            </>
+          )}
+          {isAuthenticated && !canCourses && (
             <Link
-              to="/my-learning"
-              className={`nav-link ${isActive('/my-learning') ? 'active' : ''}`}
+              to="/pending"
+              className={`nav-link ${isActive('/pending') ? 'active' : ''}`}
               onClick={() => setIsMenuOpen(false)}
             >
-              Мое обучение
+              Статус доступа
             </Link>
           )}
         </div>
@@ -73,10 +88,10 @@ export default function Navbar() {
               <img src={user?.avatar} alt={user?.name} className="user-avatar" />
               <span className="user-name">{user?.name}</span>
               <div className="dropdown-menu">
-                <Link to="/" className="dropdown-item">
+                <Link to={canCourses ? '/home' : '/pending'} className="dropdown-item">
                   Профиль
                 </Link>
-                <Link to="/" className="dropdown-item">
+                <Link to={canCourses ? '/home' : '/pending'} className="dropdown-item">
                   Настройки
                 </Link>
                 <button
@@ -91,6 +106,9 @@ export default function Navbar() {
             <div className="auth-buttons">
               <Link to="/login" className="btn btn-secondary">
                 Вход
+              </Link>
+              <Link to="/register" className="btn btn-primary">
+                Регистрация
               </Link>
             </div>
           )}

@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import CourseCard from '../components/CourseCard/CourseCard';
@@ -7,8 +8,17 @@ import AdminPanel from '../components/AdminPanel/AdminPanel';
 import '../styles/pages.css';
 
 export default function CoursesPage() {
-  const { courses, purchasedCourses, buyCourse, addCourse, deleteCourse } = useContext(AppContext);
+  const {
+    courses,
+    purchasedCourses,
+    buyCourse,
+    addCourse,
+    deleteCourse,
+    coursesLoading,
+    coursesError,
+  } = useContext(AppContext);
   const { userRole } = useAuth();
+  const navigate = useNavigate();
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
@@ -18,8 +28,7 @@ export default function CoursesPage() {
   };
 
   const handleView = (course) => {
-    console.log('View course:', course.id);
-    // Можно добавить переход на страницу курса
+    navigate(`/course/${course.id}`);
   };
 
   const handlePaymentConfirm = (courseId) => {
@@ -41,6 +50,23 @@ export default function CoursesPage() {
 
   // Admin Panel
   if (userRole === 'admin') {
+    if (coursesLoading) {
+      return (
+        <div style={{ minHeight: '100vh', padding: 40, textAlign: 'center' }}>
+          <p>Загрузка курсов с сервера…</p>
+        </div>
+      );
+    }
+    if (coursesError) {
+      return (
+        <div style={{ minHeight: '100vh', padding: 40, textAlign: 'center' }}>
+          <p style={{ color: '#b91c1c' }}>Не удалось загрузить курсы: {coursesError}</p>
+          <Link to="/api-check" style={{ marginTop: 12, display: 'inline-block' }}>
+            Проверить API
+          </Link>
+        </div>
+      );
+    }
     return (
       <div style={{ minHeight: '100vh' }}>
         <AdminPanel
@@ -53,6 +79,25 @@ export default function CoursesPage() {
   }
 
   // Teacher View
+  if (coursesLoading) {
+    return (
+      <div style={{ minHeight: '100vh', padding: 40, textAlign: 'center' }}>
+        <p>Загрузка курсов с сервера…</p>
+      </div>
+    );
+  }
+
+  if (coursesError) {
+    return (
+      <div style={{ minHeight: '100vh', padding: 40, textAlign: 'center' }}>
+        <p style={{ color: '#b91c1c' }}>Не удалось загрузить курсы: {coursesError}</p>
+        <Link to="/api-check" style={{ marginTop: 12, display: 'inline-block' }}>
+          Проверить API
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '40px 20px' }}>
       {/* Header */}
@@ -63,6 +108,9 @@ export default function CoursesPage() {
         <p style={{ fontSize: '16px', color: '#6b7280', margin: '0 0 20px' }}>
           Выбери курс и начни обучение
         </p>
+        <Link to="/api-check" style={{ fontSize: '14px', color: '#059669' }}>
+          Проверка эндпоинтов API
+        </Link>
       </div>
 
       {/* Courses Grid */}
