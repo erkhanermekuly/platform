@@ -560,10 +560,10 @@ export const olympiadsAPI = {
 };
 
 export const paymentsAPI = {
-  processPayment: async (courseId, amount) =>
+  processPayment: async (courseId, amount, returnUrl) =>
     request('/payments/process', {
       method: 'POST',
-      body: JSON.stringify({ courseId, amount }),
+      body: JSON.stringify({ courseId, amount, returnUrl }),
     }),
 
   checkPaymentStatus: async (paymentId) => request(`/payments/${paymentId}/status`),
