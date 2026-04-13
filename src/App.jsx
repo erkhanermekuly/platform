@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AppProvider } from './context/AppContext'
-import { hasCourseAccess } from './auth/roles'
+import { hasCourseAccess, coursesSectionPath } from './auth/roles'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import CoursesPage from './pages/CoursesPage'
@@ -11,6 +11,8 @@ import AuthPage from './pages/AuthPage'
 import RegisterPage from './pages/RegisterPage'
 import PendingAccessPage from './pages/PendingAccessPage'
 import ApiCheckPage from './pages/ApiCheckPage'
+import AdminCourseEditPage from './pages/AdminCourseEditPage'
+import LessonPlayerPage from './pages/LessonPlayerPage'
 import './styles/global.css'
 import './App.css'
 
@@ -34,6 +36,22 @@ function PendingOnlyRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
   if (hasCourseAccess(userRole)) {
+    return <Navigate to={coursesSectionPath(userRole)} replace />;
+  }
+  return children;
+}
+
+function AdminCoursesRoute({ children }) {
+  const { isAuthenticated, userRole } = useAuth();
+  const loc = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  }
+  if (!hasCourseAccess(userRole)) {
+    return <Navigate to="/pending" replace />;
+  }
+  if (userRole !== 'admin') {
     return <Navigate to="/courses" replace />;
   }
   return children;
@@ -43,7 +61,7 @@ function PublicAuthRoute({ children }) {
   const { isAuthenticated, userRole } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to={hasCourseAccess(userRole) ? '/courses' : '/pending'} replace />;
+    return <Navigate to={hasCourseAccess(userRole) ? coursesSectionPath(userRole) : '/pending'} replace />;
   }
   return children;
 }
@@ -98,10 +116,34 @@ function App() {
                 }
               />
               <Route
+                path="/admin/courses"
+                element={
+                  <AdminCoursesRoute>
+                    <CoursesPage />
+                  </AdminCoursesRoute>
+                }
+              />
+              <Route
+                path="/admin/courses/:courseId/edit"
+                element={
+                  <AdminCoursesRoute>
+                    <AdminCourseEditPage />
+                  </AdminCoursesRoute>
+                }
+              />
+              <Route
                 path="/course/:courseId"
                 element={
                   <CourseAccessRoute>
                     <CourseDetailsPage />
+                  </CourseAccessRoute>
+                }
+              />
+              <Route
+                path="/course/:courseId/lesson/:lessonId"
+                element={
+                  <CourseAccessRoute>
+                    <LessonPlayerPage />
                   </CourseAccessRoute>
                 }
               />

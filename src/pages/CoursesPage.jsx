@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import CourseCard from '../components/CourseCard/CourseCard';
@@ -19,8 +19,13 @@ export default function CoursesPage() {
   } = useContext(AppContext);
   const { userRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+
+  if (userRole === 'admin' && location.pathname === '/courses') {
+    return <Navigate to="/admin/courses" replace />;
+  }
 
   const handleUnlock = (course) => {
     setSelectedCourse(course);
@@ -36,15 +41,22 @@ export default function CoursesPage() {
     alert('✅ Спасибо за покупку! Курс разблокирован.');
   };
 
-  const handleAddCourse = (courseData) => {
-    addCourse(courseData);
-    alert('✅ Курс успешно добавлен!');
+  const handleAddCourse = async (courseData) => {
+    try {
+      await addCourse(courseData);
+      alert('✅ Курс успешно добавлен!');
+    } catch (e) {
+      alert(e?.message || 'Не удалось создать курс');
+    }
   };
 
-  const handleDeleteCourse = (courseId) => {
-    if (window.confirm('Вы уверены, что хотите удалить этот курс?')) {
-      deleteCourse(courseId);
+  const handleDeleteCourse = async (courseId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот курс?')) return;
+    try {
+      await deleteCourse(courseId);
       alert('✅ Курс удален.');
+    } catch (e) {
+      alert(e?.message || 'Не удалось удалить курс');
     }
   };
 

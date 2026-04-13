@@ -57,6 +57,8 @@ public class CourseModel
 
     public ICollection<CourseModuleModel> Modules { get; set; } = [];
 
+    public ICollection<CourseLessonModel> Lessons { get; set; } = [];
+
     public ICollection<CourseFileModel> Files { get; set; } = [];
 
     public ICollection<ReviewModel> Reviews { get; set; } = [];

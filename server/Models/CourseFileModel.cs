@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace server.Models;
 
 public class CourseFileModel
@@ -7,6 +9,10 @@ public class CourseFileModel
     public int CourseId { get; set; }
 
     public CourseModel Course { get; set; } = null!;
+
+    public int? LessonId { get; set; }
+
+    public CourseLessonModel? Lesson { get; set; }
 
     public string Name { get; set; } = string.Empty;
 

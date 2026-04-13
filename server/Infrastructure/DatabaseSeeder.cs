@@ -129,6 +129,23 @@ public static class DatabaseSeeder
                 new() { Title = "Возрастная педагогика", Lessons = 10, Duration = "8 часов", SortOrder = 2 },
                 new() { Title = "Практика занятий", Lessons = 8, Duration = "7 часов", SortOrder = 3 },
             ],
+            Lessons =
+            [
+                new CourseLessonModel
+                {
+                    Title = "Урок 1. Введение в курс",
+                    Description = "Цели программы, структура и как проходить уроки по порядку.",
+                    VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                    SortOrder = 1,
+                },
+                new CourseLessonModel
+                {
+                    Title = "Урок 2. Первые шаги",
+                    Description = "Открывается после просмотра первого урока до конца.",
+                    VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                    SortOrder = 2,
+                },
+            ],
         },
         new()
         {
@@ -153,6 +170,23 @@ public static class DatabaseSeeder
                 new() { Title = "Техники развития", Lessons = 8, Duration = "7 часов", SortOrder = 2 },
                 new() { Title = "Практика", Lessons = 6, Duration = "5 часов", SortOrder = 3 },
             ],
+            Lessons =
+            [
+                new CourseLessonModel
+                {
+                    Title = "Урок 1. Введение в логопедию",
+                    Description = "Базовые понятия и подход к курсу.",
+                    VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                    SortOrder = 1,
+                },
+                new CourseLessonModel
+                {
+                    Title = "Урок 2. Диагностика речи",
+                    Description = "Методы наблюдения и первичной оценки.",
+                    VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                    SortOrder = 2,
+                },
+            ],
         },
         new()
         {
@@ -176,6 +210,23 @@ public static class DatabaseSeeder
                 new() { Title = "Основы арт-подхода", Lessons = 6, Duration = "4 часа", SortOrder = 1 },
                 new() { Title = "Методики творчества", Lessons = 8, Duration = "6 часов", SortOrder = 2 },
                 new() { Title = "Групповые занятия", Lessons = 5, Duration = "5 часов", SortOrder = 3 },
+            ],
+            Lessons =
+            [
+                new CourseLessonModel
+                {
+                    Title = "Урок 1. Знакомство с арт-терапией",
+                    Description = "Введение и безопасная среда для занятий.",
+                    VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                    SortOrder = 1,
+                },
+                new CourseLessonModel
+                {
+                    Title = "Урок 2. Практические техники",
+                    Description = "Упражнения после завершения первого урока.",
+                    VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                    SortOrder = 2,
+                },
             ],
         },
     ];

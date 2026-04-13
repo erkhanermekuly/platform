@@ -54,6 +54,22 @@ public class UpdateProgressDto
     public int Progress { get; set; }
 }
 
+public class CourseLessonUpsertDto
+{
+    [Required]
+    [MinLength(2)]
+    [MaxLength(200)]
+    public string Title { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(5)]
+    [MaxLength(4000)]
+    public string Description { get; set; } = string.Empty;
+
+    [Range(1, 10_000)]
+    public int SortOrder { get; set; }
+}
+
 public class AddReviewDto
 {
     [Range(1, 5)]

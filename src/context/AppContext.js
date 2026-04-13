@@ -1,5 +1,5 @@
 import { createContext, useReducer, useCallback, createElement, useEffect } from 'react';
-import { coursesAPI, learningAPI } from '../api/courseService';
+import { coursesAPI, learningAPI, filesAPI } from '../api/courseService';
 import { useAuth } from './AuthContext';
 import { hasCourseAccess } from '../auth/roles';
 
@@ -20,17 +20,6 @@ const appReducer = (state, action) => {
       return { ...state, coursesLoading: false, coursesError: action.payload };
     case 'SET_PURCHASED':
       return { ...state, purchasedCourses: action.payload };
-    case 'ADD_COURSE':
-      return {
-        ...state,
-        courses: [
-          ...state.courses,
-          {
-            ...action.payload,
-            id: Math.max(0, ...state.courses.map((c) => c.id), 0) + 1,
-          },
-        ],
-      };
 
     case 'BUY_COURSE':
       return {
@@ -59,6 +48,22 @@ export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const canLoadCourses = isAuthenticated && hasCourseAccess(userRole);
 
+  const fetchCoursesFromApi = useCallback(async () => {
+    const response = await coursesAPI.getAllCourses();
+    if (response.success && Array.isArray(response.data)) {
+      const courses = response.data.map((c) => ({
+        ...c,
+        files: c.files ?? [],
+      }));
+      dispatch({ type: 'SET_COURSES', payload: courses });
+    } else {
+      dispatch({
+        type: 'SET_COURSES_ERROR',
+        payload: response.message || 'Не удалось загрузить курсы',
+      });
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     if (!canLoadCourses) {
@@ -69,20 +74,7 @@ export const AppProvider = ({ children }) => {
     }
     (async () => {
       try {
-        const response = await coursesAPI.getAllCourses();
-        if (cancelled) return;
-        if (response.success && Array.isArray(response.data)) {
-          const courses = response.data.map((c) => ({
-            ...c,
-            files: c.files ?? [],
-          }));
-          dispatch({ type: 'SET_COURSES', payload: courses });
-        } else {
-          dispatch({
-            type: 'SET_COURSES_ERROR',
-            payload: response.message || 'Не удалось загрузить курсы',
-          });
-        }
+        await fetchCoursesFromApi();
       } catch (e) {
         if (!cancelled) {
           dispatch({ type: 'SET_COURSES_ERROR', payload: e.message || 'Ошибка сети' });
@@ -92,7 +84,7 @@ export const AppProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, [canLoadCourses]);
+  }, [canLoadCourses, fetchCoursesFromApi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,17 +109,70 @@ export const AppProvider = ({ children }) => {
     };
   }, [isAuthenticated, userRole]);
 
-  const addCourse = useCallback((courseData) => {
-    dispatch({ type: 'ADD_COURSE', payload: courseData });
-  }, []);
+  const addCourse = useCallback(
+    async (courseData) => {
+      const baseDto = {
+        title: courseData.title,
+        description: courseData.description,
+        category: courseData.category,
+        level: courseData.level,
+        price: courseData.price ?? 0,
+        isLocked: courseData.isLocked,
+        instructor: courseData.instructor || undefined,
+      };
+
+      const created = await coursesAPI.createCourse(baseDto);
+      const id = created?.data?.id;
+      if (!id) {
+        throw new Error('Сервер не вернул id курса');
+      }
+
+      const media = [];
+      if (courseData.imageFile) media.push(courseData.imageFile);
+      if (courseData.videoFile) media.push(courseData.videoFile);
+
+      let imageUrl;
+      let videoUrl;
+      if (media.length > 0) {
+        const up = await filesAPI.uploadCourseFiles(id, media);
+        const list = Array.isArray(up?.data) ? up.data : [];
+        let i = 0;
+        if (courseData.imageFile) {
+          imageUrl = list[i++]?.url;
+        }
+        if (courseData.videoFile) {
+          videoUrl = list[i++]?.url;
+        }
+      }
+
+      if (imageUrl || videoUrl) {
+        await coursesAPI.updateCourse(id, {
+          ...baseDto,
+          image: imageUrl ?? null,
+          videoUrl: videoUrl ?? null,
+        });
+      }
+
+      if (courseData.materialFiles?.length) {
+        await filesAPI.uploadCourseFiles(id, courseData.materialFiles);
+      }
+
+      await fetchCoursesFromApi();
+    },
+    [fetchCoursesFromApi]
+  );
 
   const buyCourse = useCallback((courseId) => {
     dispatch({ type: 'BUY_COURSE', payload: courseId });
   }, []);
 
-  const deleteCourse = useCallback((courseId) => {
-    dispatch({ type: 'DELETE_COURSE', payload: courseId });
-  }, []);
+  const deleteCourse = useCallback(
+    async (courseId) => {
+      await coursesAPI.deleteCourse(courseId);
+      dispatch({ type: 'DELETE_COURSE', payload: courseId });
+    },
+    []
+  );
 
   const value = {
     courses: state.courses,

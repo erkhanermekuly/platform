@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { hasCourseAccess } from '../auth/roles';
+import { hasCourseAccess, coursesSectionPath } from '../auth/roles';
 import '../styles/navbar.css';
 
 export default function Navbar() {
@@ -17,6 +17,8 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
+  const coursesPath = canCourses ? coursesSectionPath(userRole) : '/courses';
+
   if (location.pathname === '/login' || location.pathname === '/register') {
     return null;
   }
@@ -26,7 +28,7 @@ export default function Navbar() {
       <div className="navbar-container">
         {/* Logo */}
         <Link
-          to={isAuthenticated ? (canCourses ? '/courses' : '/pending') : '/login'}
+          to={isAuthenticated ? (canCourses ? coursesSectionPath(userRole) : '/pending') : '/login'}
           className="navbar-logo"
         >
           <span className="logo-icon">📚</span>
@@ -55,8 +57,8 @@ export default function Navbar() {
                 Главная
               </Link>
               <Link
-                to="/courses"
-                className={`nav-link ${isActive('/courses') ? 'active' : ''}`}
+                to={coursesPath}
+                className={`nav-link ${location.pathname === coursesPath ? 'active' : ''}`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Курсы

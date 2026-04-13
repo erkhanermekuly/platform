@@ -100,6 +100,21 @@ export const coursesAPI = {
   getCourseById: async (courseId) => request(`/courses/${courseId}`),
 
   searchCourses: async (query) => request('/courses/search', { method: 'GET' }, { query }),
+
+  createCourse: async (dto) =>
+    request('/courses', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  deleteCourse: async (courseId) =>
+    request(`/courses/${courseId}`, { method: 'DELETE' }),
+
+  updateCourse: async (courseId, dto) =>
+    request(`/courses/${courseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    }),
 };
 
 export const authAPI = {
@@ -131,6 +146,12 @@ export const learningAPI = {
       method: 'PUT',
       body: JSON.stringify({ lessonId, progress }),
     }),
+
+  getLessonProgress: async (courseId) =>
+    request(`/learning/courses/${courseId}/lesson-progress`),
+
+  completeLesson: async (lessonId) =>
+    request(`/learning/lessons/${lessonId}/complete`, { method: 'POST' }),
 };
 
 export const reviewsAPI = {
@@ -160,10 +181,36 @@ export const paymentsAPI = {
 export const filesAPI = {
   getCourseFiles: async (courseId) => request(`/courses/${courseId}/files`),
 
-  uploadCourseFiles: async (courseId, files) => {
+  uploadCourseFiles: async (courseId, files, query = {}) => {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
-    return request(`/courses/${courseId}/files`, { method: 'POST', body: formData });
+    return request(`/courses/${courseId}/files`, { method: 'POST', body: formData }, query);
+  },
+};
+
+export const lessonsAPI = {
+  create: async (courseId, dto) =>
+    request(`/courses/${courseId}/lessons`, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  update: async (courseId, lessonId, dto) =>
+    request(`/courses/${courseId}/lessons/${lessonId}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    }),
+
+  delete: async (courseId, lessonId) =>
+    request(`/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE' }),
+
+  uploadVideo: async (courseId, lessonId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request(`/courses/${courseId}/lessons/${lessonId}/video`, {
+      method: 'POST',
+      body: formData,
+    });
   },
 };
 

@@ -19,7 +19,11 @@ const CourseCard = ({ course, onUnlock, onView, isOwned }) => {
       aria-label={course.title}
     >
       <div className={styles.imageWrap}>
-        <img src={course.image} alt="" className={styles.image} />
+        <img
+          src={course.image || 'https://via.placeholder.com/400x225?text=Course'}
+          alt=""
+          className={styles.image}
+        />
 
         {needsPayment && (
           <div className={styles.overlay} aria-hidden>

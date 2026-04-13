@@ -120,6 +120,7 @@ public class CourseController(AppDbContext context) : ControllerBase
     {
         var course = await context.Courses
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
+            .Include(c => c.Lessons)
             .Include(c => c.Files.OrderByDescending(f => f.UploadedAt))
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id);
@@ -128,6 +129,8 @@ public class CourseController(AppDbContext context) : ControllerBase
         {
             return NotFound(ApiResponse.Error("Курс не найден"));
         }
+
+        var lessonsOrdered = course.Lessons.OrderBy(l => l.SortOrder).ToList();
 
         var result = new
         {
@@ -157,7 +160,27 @@ public class CourseController(AppDbContext context) : ControllerBase
                 lessons = m.Lessons,
                 duration = m.Duration
             }),
-            files = course.Files.Select(f => new
+            lessons = lessonsOrdered.Select(l => new
+            {
+                id = l.Id,
+                title = l.Title,
+                description = l.Description,
+                videoUrl = l.VideoUrl,
+                sortOrder = l.SortOrder,
+                materials = course.Files
+                    .Where(f => f.LessonId == l.Id)
+                    .OrderByDescending(f => f.UploadedAt)
+                    .Select(f => new
+                    {
+                        id = f.Id,
+                        name = f.Name,
+                        type = f.Type,
+                        sizeBytes = f.SizeBytes,
+                        uploadedAt = f.UploadedAt,
+                        url = $"/api/courses/{course.Id}/files/{f.Id}/download"
+                    })
+            }),
+            files = course.Files.Where(f => f.LessonId == null).Select(f => new
             {
                 id = f.Id,
                 name = f.Name,

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { coursesAPI, reviewsAPI, learningAPI } from '../api/courseService';
 import { useAuth } from '../context/AuthContext';
+import { sortLessons, isLessonUnlocked } from '../services/lessonProgress';
 import '../styles/pages.css';
 
 export default function CourseDetailsPage() {
@@ -16,6 +17,7 @@ export default function CourseDetailsPage() {
   const [enrolled, setEnrolled] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, text: '' });
   const [activeTab, setActiveTab] = useState('overview');
+  const [completedLessonIds, setCompletedLessonIds] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,6 +37,27 @@ export default function CourseDetailsPage() {
     fetchData();
   }, [courseId]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !courseId) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const pr = await learningAPI.getLessonProgress(Number(courseId));
+        if (!cancelled) {
+          setEnrolled(true);
+          setCompletedLessonIds(pr?.data?.completedLessonIds ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setCompletedLessonIds([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, courseId, activeTab]);
+
   const handleEnroll = async () => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -46,6 +69,7 @@ export default function CourseDetailsPage() {
       const result = await learningAPI.enrollCourse(courseId);
       if (result.success) {
         setEnrolled(true);
+        setCompletedLessonIds([]);
         alert('Вы успешно зарегистрировались на курс!');
       }
     } catch (error) {
@@ -83,12 +107,18 @@ export default function CourseDetailsPage() {
     return <div className="error">Курс не найден</div>;
   }
 
+  const sortedLessons = sortLessons(course.lessons);
+
   return (
     <div className="course-details-page">
       {/* Course Header */}
       <div className="course-header-section">
         <div className="course-header-content">
-          <img src={course.image} alt={course.title} className="course-hero-image" />
+          <img
+            src={course.image || 'https://via.placeholder.com/800x400?text=Course'}
+            alt={course.title}
+            className="course-hero-image"
+          />
           <div className="course-header-info">
             <div className="course-breadcrumb">
               <span className="badge">{course.level}</span>
@@ -155,10 +185,35 @@ export default function CourseDetailsPage() {
           <section className="tab-content">
             <h2>О курсе</h2>
             <p>{course.description}</p>
-            
+
+            {course.videoUrl && (
+              <div style={{ margin: '24px 0' }}>
+                <h3>Видео</h3>
+                {String(course.videoUrl).includes('youtube.com') ||
+                String(course.videoUrl).includes('youtu.be') ? (
+                  <iframe
+                    title="Превью курса"
+                    src={course.videoUrl}
+                    style={{ width: '100%', maxWidth: 720, aspectRatio: '16/9', border: 0, borderRadius: 12 }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video
+                    controls
+                    src={course.videoUrl}
+                    style={{ width: '100%', maxWidth: 720, borderRadius: 12 }}
+                  />
+                )}
+              </div>
+            )}
+
             <h3>Об инструкторе</h3>
             <div className="instructor-card">
-              <img src={course.instructor.avatar} alt={course.instructor.name} />
+              <img
+                src={course.instructor.avatar || 'https://via.placeholder.com/120?text=?'}
+                alt={course.instructor.name}
+              />
               <div>
                 <h4>{course.instructor.name}</h4>
                 <p>{course.instructor.bio}</p>
@@ -171,25 +226,40 @@ export default function CourseDetailsPage() {
         {activeTab === 'curriculum' && (
           <section className="tab-content">
             <h2>Программа курса</h2>
+            <p style={{ color: '#6b7280', marginBottom: 20, maxWidth: 720 }}>
+              Уроки открываются по порядку: следующий станет доступен после того, как вы досмотрите видео предыдущего урока до конца
+              (для роликов с YouTube нажмите «Завершить урок» на странице урока).
+            </p>
             <div className="modules-list">
-              {course.modules.map((module, index) => (
-                <div key={module.id} className="module">
-                  <div className="module-header">
-                    <h3>{index + 1}. {module.title}</h3>
-                    <span className="module-info">
-                      {module.lessons} уроков • {module.duration}
-                    </span>
-                  </div>
-                  <div className="module-lessons">
-                    {Array.from({ length: module.lessons }).map((_, i) => (
-                      <div key={i} className="lesson">
-                        <span className="lesson-icon">📹</span>
-                        <span>Урок {i + 1}: Название урока</span>
+              {sortedLessons.length === 0 ? (
+                <p style={{ color: '#6b7280' }}>Список уроков скоро появится.</p>
+              ) : (
+                sortedLessons.map((lesson, index) => {
+                  const open = enrolled && isLessonUnlocked(sortedLessons, lesson.id, completedLessonIds);
+                  const done = completedLessonIds.includes(lesson.id);
+                  return (
+                    <div key={lesson.id} className="module">
+                      <div className="module-header">
+                        <h3>
+                          {index + 1}. {lesson.title}
+                          {done && <span style={{ marginLeft: 8, fontSize: 14 }}>✓</span>}
+                          {!open && enrolled && <span style={{ marginLeft: 8, fontSize: 14 }}>🔒</span>}
+                        </h3>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      <p style={{ color: '#4b5563', marginBottom: 12 }}>{lesson.description}</p>
+                      {open ? (
+                        <Link className="btn btn-primary" to={`/course/${courseId}/lesson/${lesson.id}`}>
+                          Перейти к уроку
+                        </Link>
+                      ) : enrolled ? (
+                        <span style={{ color: '#b45309' }}>Сначала завершите предыдущий урок</span>
+                      ) : (
+                        <span style={{ color: '#6b7280' }}>Запишитесь на курс, чтобы проходить уроки</span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </section>
         )}
