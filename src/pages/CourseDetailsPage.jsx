@@ -1,15 +1,20 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { coursesAPI, reviewsAPI, learningAPI } from '../api/courseService';
 import { useAuth } from '../context/AuthContext';
-import { sortLessons, isLessonUnlocked } from '../services/lessonProgress';
 import '../styles/pages.css';
+
+function isYoutubeUrl(url) {
+  if (!url) return false;
+  const s = String(url);
+  return s.includes('youtube.com') || s.includes('youtu.be');
+}
 
 export default function CourseDetailsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
-  
+  const { isAuthenticated } = useAuth();
+
   const [course, setCourse] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,14 +22,69 @@ export default function CourseDetailsPage() {
   const [enrolled, setEnrolled] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, text: '' });
   const [activeTab, setActiveTab] = useState('overview');
-  const [completedLessonIds, setCompletedLessonIds] = useState([]);
+
+  const [curriculum, setCurriculum] = useState(null);
+  const [curriculumError, setCurriculumError] = useState(null);
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [completing, setCompleting] = useState(false);
+
+  useEffect(() => {
+    setCurriculum(null);
+    setSelectedLessonId(null);
+    setCurriculumError(null);
+  }, [courseId]);
+
+  const loadCurriculum = useCallback(async () => {
+    if (!isAuthenticated) {
+      setCurriculum(null);
+      setCurriculumError(null);
+      return;
+    }
+    try {
+      const res = await learningAPI.getCourseCurriculum(courseId);
+      const rows = Array.isArray(res?.data) ? res.data : [];
+      setCurriculum(rows);
+      setCurriculumError(null);
+      setEnrolled(true);
+      setSelectedLessonId((prev) => {
+        if (prev != null && rows.some((l) => l.id === prev)) {
+          return prev;
+        }
+        const firstOpen = rows.find((l) => l.isUnlocked) || rows[0];
+        return firstOpen?.id ?? null;
+      });
+    } catch {
+      setCurriculum(null);
+      setCurriculumError('curriculum');
+      setEnrolled(false);
+    }
+  }, [courseId, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setEnrolled(false);
+      return;
+    }
+    let cancelled = false;
+    learningAPI
+      .getCourseCurriculum(courseId)
+      .then(() => {
+        if (!cancelled) setEnrolled(true);
+      })
+      .catch(() => {
+        if (!cancelled) setEnrolled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, courseId]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const courseData = await coursesAPI.getCourseById(courseId);
         const reviewsData = await reviewsAPI.getCourseReviews(courseId);
-        
+
         setCourse(courseData.data);
         setReviews(reviewsData.data);
       } catch (error) {
@@ -38,25 +98,10 @@ export default function CourseDetailsPage() {
   }, [courseId]);
 
   useEffect(() => {
-    if (!isAuthenticated || !courseId) return undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const pr = await learningAPI.getLessonProgress(Number(courseId));
-        if (!cancelled) {
-          setEnrolled(true);
-          setCompletedLessonIds(pr?.data?.completedLessonIds ?? []);
-        }
-      } catch {
-        if (!cancelled) {
-          setCompletedLessonIds([]);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, courseId, activeTab]);
+    if (activeTab === 'curriculum' && isAuthenticated) {
+      loadCurriculum();
+    }
+  }, [activeTab, isAuthenticated, loadCurriculum]);
 
   const handleEnroll = async () => {
     if (!isAuthenticated) {
@@ -69,8 +114,8 @@ export default function CourseDetailsPage() {
       const result = await learningAPI.enrollCourse(courseId);
       if (result.success) {
         setEnrolled(true);
-        setCompletedLessonIds([]);
         alert('Вы успешно зарегистрировались на курс!');
+        await loadCurriculum();
       }
     } catch (error) {
       alert('Ошибка при регистрации на курс');
@@ -90,12 +135,25 @@ export default function CourseDetailsPage() {
       await reviewsAPI.addReview(courseId, newReview.rating, newReview.text);
       setNewReview({ rating: 5, text: '' });
       alert('Отзыв успешно добавлен!');
-      
-      // Reload reviews
+
       const updatedReviews = await reviewsAPI.getCourseReviews(courseId);
       setReviews(updatedReviews.data);
     } catch (error) {
       alert('Ошибка при добавлении отзыва');
+    }
+  };
+
+  const markLessonComplete = async (lessonId) => {
+    if (!lessonId || completing) return;
+    setCompleting(true);
+    try {
+      await learningAPI.completeLesson(lessonId);
+      const res = await learningAPI.getCourseCurriculum(courseId);
+      setCurriculum(Array.isArray(res?.data) ? res.data : []);
+    } catch (e) {
+      alert(e?.message || 'Не удалось отметить урок');
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -107,15 +165,18 @@ export default function CourseDetailsPage() {
     return <div className="error">Курс не найден</div>;
   }
 
-  const sortedLessons = sortLessons(course.lessons);
+  const outlineLessons = Array.isArray(course.lessons) && course.lessons.length > 0 ? course.lessons : null;
+  const activeLesson =
+    curriculum && selectedLessonId != null
+      ? curriculum.find((l) => l.id === selectedLessonId)
+      : null;
 
   return (
     <div className="course-details-page">
-      {/* Course Header */}
       <div className="course-header-section">
         <div className="course-header-content">
           <img
-            src={course.image || 'https://via.placeholder.com/800x400?text=Course'}
+            src={course.image || 'https://via.placeholder.com/400x225?text=Course'}
             alt={course.title}
             className="course-hero-image"
           />
@@ -126,23 +187,25 @@ export default function CourseDetailsPage() {
             </div>
             <h1>{course.title}</h1>
             <p className="course-description">{course.description}</p>
-            
+
             <div className="course-meta-info">
               <div className="meta-item">
                 <span className="label">Преподаватель</span>
-                <span className="value">👨‍🏫 {course.instructor.name}</span>
+                <span className="value">👨‍🏫 {course.instructor?.name ?? '—'}</span>
               </div>
               <div className="meta-item">
                 <span className="label">Рейтинг</span>
-                <span className="value">⭐ {course.rating} ({course.students.toLocaleString()} студентов)</span>
+                <span className="value">
+                  ⭐ {course.rating} ({course.students?.toLocaleString?.() ?? 0} студентов)
+                </span>
               </div>
               <div className="meta-item">
                 <span className="label">Длительность</span>
-                <span className="value">⏱️ {course.duration}</span>
+                <span className="value">⏱️ {course.duration ?? '—'}</span>
               </div>
               <div className="meta-item">
                 <span className="label">Цена</span>
-                <span className="value price">{course.price === 0 ? 'Бесплатно' : `$${course.price}`}</span>
+                <span className="value price">{course.price === 0 ? 'Бесплатно' : `${course.price} ₸`}</span>
               </div>
             </div>
 
@@ -157,21 +220,23 @@ export default function CourseDetailsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="course-tabs">
         <button
+          type="button"
           className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveTab('overview')}
         >
           Обзор
         </button>
         <button
+          type="button"
           className={`tab-btn ${activeTab === 'curriculum' ? 'active' : ''}`}
           onClick={() => setActiveTab('curriculum')}
         >
           Программа
         </button>
         <button
+          type="button"
           className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
           onClick={() => setActiveTab('reviews')}
         >
@@ -180,7 +245,6 @@ export default function CourseDetailsPage() {
       </div>
 
       <div className="course-content">
-        {/* Overview Tab */}
         {activeTab === 'overview' && (
           <section className="tab-content">
             <h2>О курсе</h2>
@@ -188,13 +252,18 @@ export default function CourseDetailsPage() {
 
             {course.videoUrl && (
               <div style={{ margin: '24px 0' }}>
-                <h3>Видео</h3>
-                {String(course.videoUrl).includes('youtube.com') ||
-                String(course.videoUrl).includes('youtu.be') ? (
+                <h3>Вводное видео</h3>
+                {isYoutubeUrl(course.videoUrl) ? (
                   <iframe
                     title="Превью курса"
                     src={course.videoUrl}
-                    style={{ width: '100%', maxWidth: 720, aspectRatio: '16/9', border: 0, borderRadius: 12 }}
+                    style={{
+                      width: '100%',
+                      maxWidth: 720,
+                      aspectRatio: '16/9',
+                      border: 0,
+                      borderRadius: 12,
+                    }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
@@ -211,74 +280,194 @@ export default function CourseDetailsPage() {
             <h3>Об инструкторе</h3>
             <div className="instructor-card">
               <img
-                src={course.instructor.avatar || 'https://via.placeholder.com/120?text=?'}
-                alt={course.instructor.name}
+                src={course.instructor?.avatar || 'https://via.placeholder.com/120?text=Avatar'}
+                alt={course.instructor?.name || ''}
               />
               <div>
-                <h4>{course.instructor.name}</h4>
-                <p>{course.instructor.bio}</p>
+                <h4>{course.instructor?.name ?? '—'}</h4>
+                <p>{course.instructor?.bio ?? ''}</p>
               </div>
             </div>
           </section>
         )}
 
-        {/* Curriculum Tab */}
         {activeTab === 'curriculum' && (
           <section className="tab-content">
             <h2>Программа курса</h2>
-            <p style={{ color: '#6b7280', marginBottom: 20, maxWidth: 720 }}>
-              Уроки открываются по порядку: следующий станет доступен после того, как вы досмотрите видео предыдущего урока до конца
-              (для роликов с YouTube нажмите «Завершить урок» на странице урока).
-            </p>
-            <div className="modules-list">
-              {sortedLessons.length === 0 ? (
-                <p style={{ color: '#6b7280' }}>Список уроков скоро появится.</p>
-              ) : (
-                sortedLessons.map((lesson, index) => {
-                  const open = enrolled && isLessonUnlocked(sortedLessons, lesson.id, completedLessonIds);
-                  const done = completedLessonIds.includes(lesson.id);
-                  return (
-                    <div key={lesson.id} className="module">
-                      <div className="module-header">
-                        <h3>
-                          {index + 1}. {lesson.title}
-                          {done && <span style={{ marginLeft: 8, fontSize: 14 }}>✓</span>}
-                          {!open && enrolled && <span style={{ marginLeft: 8, fontSize: 14 }}>🔒</span>}
-                        </h3>
-                      </div>
-                      <p style={{ color: '#4b5563', marginBottom: 12 }}>{lesson.description}</p>
-                      {open ? (
-                        <Link className="btn btn-primary" to={`/course/${courseId}/lesson/${lesson.id}`}>
-                          Перейти к уроку
-                        </Link>
-                      ) : enrolled ? (
-                        <span style={{ color: '#b45309' }}>Сначала завершите предыдущий урок</span>
-                      ) : (
-                        <span style={{ color: '#6b7280' }}>Запишитесь на курс, чтобы проходить уроки</span>
+
+            {!isAuthenticated && (
+              <p className="curriculum-hint">Войдите и запишитесь на курс, чтобы смотреть уроки по порядку.</p>
+            )}
+
+            {isAuthenticated && curriculumError && !enrolled && (
+              <p className="curriculum-hint">
+                Запишитесь на курс, чтобы открыть уроки. Следующие уроки станут доступны после просмотра
+                предыдущего до конца.
+              </p>
+            )}
+
+            {isAuthenticated && enrolled && curriculum && curriculum.length === 0 && (
+              <p>Для этого курса ещё не добавлены уроки. Загляните позже.</p>
+            )}
+
+            {isAuthenticated && enrolled && curriculum && curriculum.length > 0 && (
+              <div className="curriculum-layout">
+                <div className="curriculum-sidebar">
+                  <h3 className="curriculum-sidebar-title">Уроки</h3>
+                  <ul className="curriculum-lesson-list">
+                    {curriculum.map((lesson, idx) => (
+                      <li key={lesson.id}>
+                        <button
+                          type="button"
+                          className={`curriculum-lesson-btn ${selectedLessonId === lesson.id ? 'active' : ''} ${
+                            !lesson.isUnlocked ? 'locked' : ''
+                          }`}
+                          disabled={!lesson.isUnlocked}
+                          onClick={() => lesson.isUnlocked && setSelectedLessonId(lesson.id)}
+                        >
+                          <span className="lesson-num">{idx + 1}.</span>
+                          <span className="lesson-ti">{lesson.title}</span>
+                          {!lesson.isUnlocked && <span className="lock-tag">🔒</span>}
+                          {lesson.isCompleted && <span className="done-tag">✓</span>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="curriculum-main">
+                  {activeLesson && (
+                    <>
+                      <h3>{activeLesson.title}</h3>
+                      <p className="lesson-desc">{activeLesson.description}</p>
+
+                      {activeLesson.videoUrl && activeLesson.isUnlocked && (
+                        <div className="lesson-video-wrap">
+                          {isYoutubeUrl(activeLesson.videoUrl) ? (
+                            <>
+                              <iframe
+                                title={activeLesson.title}
+                                src={activeLesson.videoUrl}
+                                style={{
+                                  width: '100%',
+                                  maxWidth: 720,
+                                  aspectRatio: '16/9',
+                                  border: 0,
+                                  borderRadius: 12,
+                                }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                              <p className="video-note">
+                                После просмотра ролика нажмите кнопку ниже, чтобы открыть следующий урок.
+                              </p>
+                              {!activeLesson.isCompleted && (
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  disabled={completing}
+                                  onClick={() => markLessonComplete(activeLesson.id)}
+                                >
+                                  {completing ? '…' : 'Я просмотрел урок — отметить завершённым'}
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <video
+                              controls
+                              src={activeLesson.videoUrl}
+                              style={{ width: '100%', maxWidth: 720, borderRadius: 12 }}
+                              onEnded={() => {
+                                if (!activeLesson.isCompleted) {
+                                  markLessonComplete(activeLesson.id);
+                                }
+                              }}
+                            />
+                          )}
+                        </div>
                       )}
+
+                      {activeLesson.isUnlocked &&
+                        activeLesson.materials &&
+                        activeLesson.materials.length > 0 && (
+                          <div className="lesson-materials">
+                            <h4>Материалы</h4>
+                            <ul>
+                              {activeLesson.materials.map((m) => (
+                                <li key={m.id}>
+                                  <a href={m.url} target="_blank" rel="noreferrer">
+                                    {m.name}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                      {activeLesson.isUnlocked && !activeLesson.videoUrl && !activeLesson.isCompleted && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          disabled={completing}
+                          onClick={() => markLessonComplete(activeLesson.id)}
+                        >
+                          Завершить урок (без видео)
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!enrolled && outlineLessons && (
+              <div className="modules-list">
+                <p style={{ marginBottom: 16, color: '#6b7280' }}>План курса (после записи — доступ по порядку):</p>
+                {outlineLessons.map((lesson, index) => (
+                  <div key={lesson.id} className="module">
+                    <div className="module-header">
+                      <h3>
+                        {index + 1}. {lesson.title}
+                      </h3>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                    {lesson.description && <p className="lesson-desc-preview">{lesson.description}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!enrolled && !outlineLessons && course.modules && (
+              <div className="modules-list">
+                {course.modules.map((module, index) => (
+                  <div key={module.id} className="module">
+                    <div className="module-header">
+                      <h3>
+                        {index + 1}. {module.title}
+                      </h3>
+                      <span className="module-info">
+                        {module.lessons} уроков • {module.duration}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
-        {/* Reviews Tab */}
         {activeTab === 'reviews' && (
           <section className="tab-content">
             <h2>Отзывы студентов</h2>
 
-            {/* Add Review Form */}
             {isAuthenticated && (
               <div className="review-form">
                 <h3>Оставить отзыв</h3>
                 <form onSubmit={handleAddReview}>
                   <div className="form-group">
-                    <label>Рейтинг</label>
+                    <label htmlFor="review-rating">Рейтинг</label>
                     <select
+                      id="review-rating"
                       value={newReview.rating}
-                      onChange={(e) => setNewReview({ ...newReview, rating: e.target.value })}
+                      onChange={(e) => setNewReview({ ...newReview, rating: Number(e.target.value) })}
                     >
                       <option value="5">⭐⭐⭐⭐⭐ Отличный курс</option>
                       <option value="4">⭐⭐⭐⭐ Хороший курс</option>
@@ -288,8 +477,9 @@ export default function CourseDetailsPage() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Ваш отзыв</label>
+                    <label htmlFor="review-text">Ваш отзыв</label>
                     <textarea
+                      id="review-text"
                       value={newReview.text}
                       onChange={(e) => setNewReview({ ...newReview, text: e.target.value })}
                       placeholder="Поделитесь своим мнением о курсе..."
@@ -303,9 +493,8 @@ export default function CourseDetailsPage() {
               </div>
             )}
 
-            {/* Reviews List */}
             <div className="reviews-list">
-              {reviews.map(review => (
+              {reviews.map((review) => (
                 <div key={review.id} className="review-item">
                   <div className="review-header">
                     <span className="reviewer-name">{review.user}</span>

@@ -21,7 +21,7 @@ public class CourseFilesController(AppDbContext context, IWebHostEnvironment env
 
         var files = await context.CourseFiles
             .AsNoTracking()
-            .Where(f => f.CourseId == courseId && f.LessonId == null)
+            .Where(f => f.CourseId == courseId)
             .OrderByDescending(f => f.UploadedAt)
             .Select(f => new
             {
@@ -40,7 +40,7 @@ public class CourseFilesController(AppDbContext context, IWebHostEnvironment env
     [Authorize]
     [HttpPost]
     [RequestSizeLimit(100_000_000)]
-    public async Task<IActionResult> UploadFiles(int courseId, [FromQuery] int? lessonId)
+    public async Task<IActionResult> UploadFiles(int courseId)
     {
         var course = await context.Courses.FindAsync(courseId);
         if (course is null)
@@ -48,18 +48,23 @@ public class CourseFilesController(AppDbContext context, IWebHostEnvironment env
             return NotFound(ApiResponse.Error("Курс не найден"));
         }
 
-        if (lessonId is not null)
-        {
-            var lessonOk = await context.CourseLessons.AnyAsync(l => l.Id == lessonId && l.CourseId == courseId);
-            if (!lessonOk)
-            {
-                return BadRequest(ApiResponse.Error("Урок не принадлежит этому курсу"));
-            }
-        }
-
         if (Request.Form.Files.Count == 0)
         {
             return BadRequest(ApiResponse.Error("Не переданы файлы"));
+        }
+
+        int? bindLessonId = null;
+        if (Request.Form.TryGetValue("lessonId", out var lessonIdRaw) &&
+            int.TryParse(lessonIdRaw.ToString(), out var parsedLessonId))
+        {
+            var lessonOk = await context.CourseLessons.AnyAsync(
+                l => l.Id == parsedLessonId && l.CourseId == courseId);
+            if (!lessonOk)
+            {
+                return BadRequest(ApiResponse.Error("Некорректный lessonId для этого курса"));
+            }
+
+            bindLessonId = parsedLessonId;
         }
 
         var uploadRoot = Path.Combine(env.ContentRootPath, "uploads", "courses", courseId.ToString());
@@ -86,7 +91,7 @@ public class CourseFilesController(AppDbContext context, IWebHostEnvironment env
             var item = new CourseFileModel
             {
                 CourseId = courseId,
-                LessonId = lessonId,
+                LessonId = bindLessonId,
                 Name = originalName,
                 Type = string.IsNullOrWhiteSpace(extension) ? "file" : extension,
                 RelativePath = Path.Combine("uploads", "courses", courseId.ToString(), safeName).Replace("\\", "/"),

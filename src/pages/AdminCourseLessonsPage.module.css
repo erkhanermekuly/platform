@@ -1,0 +1,183 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: 32px 20px 60px;
+}
+
+.topBar {
+  max-width: 900px;
+  margin: 0 auto 16px;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.hint {
+  max-width: 900px;
+  margin: 0 auto 24px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.section {
+  max-width: 900px;
+  margin: 0 auto 28px;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.section h2 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.newForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input,
+.textarea {
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.inputSmall {
+  max-width: 120px;
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.lessonList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lessonCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.lessonGrid {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.embedHint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.field.full {
+  grid-column: 1 / -1;
+}
+
+.fileRow {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.fileLabel {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.lessonActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btnPrimary {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4e7ee8 0%, #2b52b5 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnDanger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: white;
+  color: #dc2626;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.matList {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+.matList a {
+  color: #2563eb;
+}
+
+.footerLink {
+  max-width: 900px;
+  margin: 24px auto 0;
+  text-align: center;
+}
+
+.footerLink a {
+  color: #4f46e5;
+  font-weight: 600;
+}

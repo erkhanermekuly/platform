@@ -111,6 +111,7 @@ export const AppProvider = ({ children }) => {
 
   const addCourse = useCallback(
     async (courseData) => {
+      const videoUrlStr = courseData.videoUrl?.trim?.() || '';
       const baseDto = {
         title: courseData.title,
         description: courseData.description,
@@ -119,6 +120,7 @@ export const AppProvider = ({ children }) => {
         price: courseData.price ?? 0,
         isLocked: courseData.isLocked,
         instructor: courseData.instructor || undefined,
+        videoUrl: videoUrlStr || undefined,
       };
 
       const created = await coursesAPI.createCourse(baseDto);
@@ -127,29 +129,17 @@ export const AppProvider = ({ children }) => {
         throw new Error('Сервер не вернул id курса');
       }
 
-      const media = [];
-      if (courseData.imageFile) media.push(courseData.imageFile);
-      if (courseData.videoFile) media.push(courseData.videoFile);
-
       let imageUrl;
-      let videoUrl;
-      if (media.length > 0) {
-        const up = await filesAPI.uploadCourseFiles(id, media);
+      if (courseData.imageFile) {
+        const up = await filesAPI.uploadCourseFiles(id, [courseData.imageFile]);
         const list = Array.isArray(up?.data) ? up.data : [];
-        let i = 0;
-        if (courseData.imageFile) {
-          imageUrl = list[i++]?.url;
-        }
-        if (courseData.videoFile) {
-          videoUrl = list[i++]?.url;
-        }
+        imageUrl = list[0]?.url;
       }
 
-      if (imageUrl || videoUrl) {
+      if (imageUrl) {
         await coursesAPI.updateCourse(id, {
           ...baseDto,
-          image: imageUrl ?? null,
-          videoUrl: videoUrl ?? null,
+          image: imageUrl,
         });
       }
 
@@ -182,6 +172,7 @@ export const AppProvider = ({ children }) => {
     addCourse,
     buyCourse,
     deleteCourse,
+    refreshCourses: fetchCoursesFromApi,
     dispatch,
   };
 

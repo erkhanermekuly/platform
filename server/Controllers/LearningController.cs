@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.DTOs;
 using server.Models;
-using server.Services;
 using System.Security.Claims;
 
 namespace server.Controllers;
@@ -101,9 +100,9 @@ public class LearningController(AppDbContext context) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { progress = learning.Progress }));
     }
 
-    /// <summary>Какие уроки курса пользователь уже завершил (досмотрел видео до конца).</summary>
-    [HttpGet("courses/{courseId:int}/lesson-progress")]
-    public async Task<IActionResult> GetLessonProgress(int courseId)
+    /// <summary>Программа курса с блокировкой уроков: N+1 доступен после просмотра N до конца.</summary>
+    [HttpGet("course/{courseId:int}/curriculum")]
+    public async Task<IActionResult> GetCourseCurriculum(int courseId)
     {
         var userId = GetUserId();
         if (userId is null)
@@ -111,22 +110,90 @@ public class LearningController(AppDbContext context) : ControllerBase
             return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
         }
 
-        var enrolled = await context.Learnings.AnyAsync(x => x.AccountId == userId && x.CourseId == courseId);
+        var enrolled = await context.Learnings
+            .AsNoTracking()
+            .AnyAsync(x => x.AccountId == userId && x.CourseId == courseId);
         if (!enrolled)
         {
-            return BadRequest(ApiResponse.Error("Сначала запишитесь на курс"));
+            return Forbid();
         }
 
-        var completed = await context.LessonCompletions
+        var lessons = await context.CourseLessons
             .AsNoTracking()
-            .Where(c => c.AccountId == userId && c.CourseId == courseId)
-            .Select(c => c.LessonId)
+            .Where(l => l.CourseId == courseId)
+            .OrderBy(l => l.SortOrder)
+            .ThenBy(l => l.Id)
             .ToListAsync();
 
-        return Ok(ApiResponse<object>.Ok(new { completedLessonIds = completed }));
+        if (lessons.Count == 0)
+        {
+            return Ok(ApiResponse<object>.Ok(Array.Empty<object>()));
+        }
+
+        var lessonIds = lessons.Select(l => l.Id).ToList();
+        var completedIds = await context.LessonCompletions
+            .AsNoTracking()
+            .Where(c => c.AccountId == userId && lessonIds.Contains(c.CourseLessonId))
+            .Select(c => c.CourseLessonId)
+            .ToListAsync();
+
+        var completedSet = completedIds.ToHashSet();
+
+        var files = await context.CourseFiles
+            .AsNoTracking()
+            .Where(f => f.CourseId == courseId && f.LessonId != null && lessonIds.Contains(f.LessonId.Value))
+            .OrderByDescending(f => f.UploadedAt)
+            .ToListAsync();
+
+        var filesByLesson = files.GroupBy(f => f.LessonId!.Value).ToDictionary(g => g.Key, g => g.ToList());
+
+        var payload = new List<object>();
+        for (var i = 0; i < lessons.Count; i++)
+        {
+            var lesson = lessons[i];
+            var isCompleted = completedSet.Contains(lesson.Id);
+            var isUnlocked = i == 0 || completedSet.Contains(lessons[i - 1].Id);
+
+            string? teaserDescription = null;
+            if (!isUnlocked)
+            {
+                teaserDescription = "Разблокируется после просмотра предыдущего урока до конца.";
+            }
+
+            object materials;
+            if (isUnlocked && filesByLesson.TryGetValue(lesson.Id, out var mats))
+            {
+                materials = mats
+                    .Select(f => new
+                    {
+                        id = f.Id,
+                        name = f.Name,
+                        type = f.Type,
+                        url = $"/api/courses/{courseId}/files/{f.Id}/download",
+                    })
+                    .ToList();
+            }
+            else
+            {
+                materials = new List<object>();
+            }
+
+            payload.Add(new
+            {
+                id = lesson.Id,
+                title = lesson.Title,
+                description = isUnlocked ? lesson.Description : teaserDescription,
+                sortOrder = lesson.SortOrder,
+                videoUrl = isUnlocked ? lesson.VideoUrl : null,
+                isUnlocked,
+                isCompleted,
+                materials,
+            });
+        }
+
+        return Ok(ApiResponse<object>.Ok(payload));
     }
 
-    /// <summary>Отметить урок завершённым после просмотра видео (с проверкой последовательности).</summary>
     [HttpPost("lessons/{lessonId:int}/complete")]
     public async Task<IActionResult> CompleteLesson(int lessonId)
     {
@@ -136,49 +203,69 @@ public class LearningController(AppDbContext context) : ControllerBase
             return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
         }
 
-        var lesson = await context.CourseLessons.FirstOrDefaultAsync(l => l.Id == lessonId);
+        var lesson = await context.CourseLessons
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == lessonId);
         if (lesson is null)
         {
             return NotFound(ApiResponse.Error("Урок не найден"));
         }
 
-        var enrolled = await context.Learnings.AnyAsync(x => x.AccountId == userId && x.CourseId == lesson.CourseId);
-        if (!enrolled)
+        var enrolled = await context.Learnings
+            .FirstOrDefaultAsync(x => x.AccountId == userId && x.CourseId == lesson.CourseId);
+        if (enrolled is null)
         {
-            return BadRequest(ApiResponse.Error("Сначала запишитесь на курс"));
+            return Forbid();
         }
 
-        if (!await LessonProgressRules.IsLessonUnlockedAsync(context, userId.Value, lesson))
+        var ordered = await context.CourseLessons
+            .AsNoTracking()
+            .Where(l => l.CourseId == lesson.CourseId)
+            .OrderBy(l => l.SortOrder)
+            .ThenBy(l => l.Id)
+            .Select(l => l.Id)
+            .ToListAsync();
+
+        var idx = ordered.IndexOf(lessonId);
+        if (idx < 0)
         {
-            return BadRequest(ApiResponse.Error("Сначала завершите предыдущий урок"));
+            return NotFound(ApiResponse.Error("Урок не найден"));
         }
 
-        var already = await context.LessonCompletions.AnyAsync(c => c.AccountId == userId && c.LessonId == lessonId);
-        if (already)
+        if (idx > 0)
         {
-            return Ok(ApiResponse.Ok("Урок уже был завершён"));
+            var prevId = ordered[idx - 1];
+            var prevDone = await context.LessonCompletions
+                .AnyAsync(c => c.AccountId == userId && c.CourseLessonId == prevId);
+            if (!prevDone)
+            {
+                return BadRequest(ApiResponse.Error("Сначала завершите предыдущий урок (досмотрите видео до конца)"));
+            }
         }
 
-        context.LessonCompletions.Add(new LessonCompletionModel
+        var exists = await context.LessonCompletions
+            .AnyAsync(c => c.AccountId == userId && c.CourseLessonId == lessonId);
+        if (!exists)
         {
-            AccountId = userId.Value,
-            CourseId = lesson.CourseId,
-            LessonId = lessonId,
-            CompletedAt = DateTime.UtcNow,
-        });
+            context.LessonCompletions.Add(new LessonCompletionModel
+            {
+                AccountId = userId.Value,
+                CourseLessonId = lessonId,
+                CompletedAtUtc = DateTime.UtcNow,
+            });
+        }
 
         await context.SaveChangesAsync();
 
-        var learning = await context.Learnings.FirstOrDefaultAsync(x => x.AccountId == userId && x.CourseId == lesson.CourseId);
-        if (learning is not null)
-        {
-            learning.Progress = await LessonProgressRules.ComputeCourseProgressPercentAsync(context, userId.Value, lesson.CourseId);
-            learning.LastAccessed = DateTime.UtcNow;
-            await context.SaveChangesAsync();
-        }
+        var total = ordered.Count;
+        var doneCount = await context.LessonCompletions
+            .CountAsync(c => c.AccountId == userId.Value && ordered.Contains(c.CourseLessonId));
 
-        var pct = learning?.Progress ?? 0;
-        return Ok(ApiResponse<object>.Ok(new { progress = pct }));
+        enrolled.Progress = total > 0 ? (int)Math.Round(100.0 * doneCount / total) : 0;
+        enrolled.LastAccessed = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.Ok(new { progress = enrolled.Progress, completed = true }));
     }
 
     private int? GetUserId()

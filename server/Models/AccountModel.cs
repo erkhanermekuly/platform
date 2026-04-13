@@ -31,4 +31,6 @@ public class AccountModel
     public ICollection<ReviewModel> Reviews { get; set; } = [];
 
     public ICollection<PaymentModel> Payments { get; set; } = [];
+
+    public ICollection<LessonCompletionModel> LessonCompletions { get; set; } = [];
 }

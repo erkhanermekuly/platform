@@ -1,133 +1,134 @@
-using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
-using server;
 
 namespace server.Infrastructure;
 
 /// <summary>
-/// При использовании EnsureCreated() существующая БД не получает новые таблицы.
-/// Добавляем недостающие таблицы и колонки идемпотентно (MySQL).
+/// EnsureCreated не обновляет существующую схему MySQL — добавляем таблицы/колонки идемпотентно.
 /// </summary>
 public static class SchemaPatcher
 {
-    public static async Task ApplyAsync(AppDbContext db, ILogger logger, CancellationToken ct = default)
+    public static async Task ApplyAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
+        var conn = db.Database.GetDbConnection();
+        await conn.OpenAsync(cancellationToken);
         try
         {
-            await db.Database.OpenConnectionAsync(ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "SchemaPatcher: не удалось открыть соединение с БД");
-            return;
-        }
-
-        try
-        {
-            var conn = db.Database.GetDbConnection();
-
-            if (!await TableExistsAsync(conn, "CourseLessons", ct))
-            {
-                await db.Database.ExecuteSqlRawAsync(
-                    """
-                    CREATE TABLE `CourseLessons` (
-                      `Id` int NOT NULL AUTO_INCREMENT,
-                      `CourseId` int NOT NULL,
-                      `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
-                      `Description` varchar(4000) CHARACTER SET utf8mb4 NOT NULL,
-                      `VideoUrl` varchar(1024) CHARACTER SET utf8mb4 NULL,
-                      `SortOrder` int NOT NULL,
-                      PRIMARY KEY (`Id`),
-                      KEY `IX_CourseLessons_CourseId` (`CourseId`),
-                      CONSTRAINT `FK_CourseLessons_Courses_CourseId` FOREIGN KEY (`CourseId`) REFERENCES `Courses` (`Id`) ON DELETE CASCADE
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-                    """,
-                    cancellationToken: ct);
-                logger.LogInformation("SchemaPatcher: создана таблица CourseLessons");
-            }
-
-            if (!await TableExistsAsync(conn, "LessonCompletions", ct))
-            {
-                await db.Database.ExecuteSqlRawAsync(
-                    """
-                    CREATE TABLE `LessonCompletions` (
-                      `Id` int NOT NULL AUTO_INCREMENT,
-                      `AccountId` int NOT NULL,
-                      `CourseId` int NOT NULL,
-                      `LessonId` int NOT NULL,
-                      `CompletedAt` datetime(6) NOT NULL,
-                      PRIMARY KEY (`Id`),
-                      UNIQUE KEY `IX_LessonCompletions_AccountId_LessonId` (`AccountId`,`LessonId`),
-                      KEY `IX_LessonCompletions_CourseId` (`CourseId`),
-                      KEY `IX_LessonCompletions_LessonId` (`LessonId`),
-                      CONSTRAINT `FK_LessonCompletions_Accounts_AccountId` FOREIGN KEY (`AccountId`) REFERENCES `Accounts` (`Id`) ON DELETE CASCADE,
-                      CONSTRAINT `FK_LessonCompletions_Courses_CourseId` FOREIGN KEY (`CourseId`) REFERENCES `Courses` (`Id`) ON DELETE CASCADE,
-                      CONSTRAINT `FK_LessonCompletions_CourseLessons_LessonId` FOREIGN KEY (`LessonId`) REFERENCES `CourseLessons` (`Id`) ON DELETE CASCADE
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-                    """,
-                    cancellationToken: ct);
-                logger.LogInformation("SchemaPatcher: создана таблица LessonCompletions");
-            }
-
-            if (!await ColumnExistsAsync(conn, "CourseFiles", "LessonId", ct))
-            {
-                await db.Database.ExecuteSqlRawAsync(
-                    """
-                    ALTER TABLE `CourseFiles` ADD COLUMN `LessonId` int NULL;
-                    ALTER TABLE `CourseFiles` ADD KEY `IX_CourseFiles_LessonId` (`LessonId`);
-                    ALTER TABLE `CourseFiles` ADD CONSTRAINT `FK_CourseFiles_CourseLessons_LessonId` FOREIGN KEY (`LessonId`) REFERENCES `CourseLessons` (`Id`) ON DELETE CASCADE;
-                    """,
-                    cancellationToken: ct);
-                logger.LogInformation("SchemaPatcher: в CourseFiles добавлена колонка LessonId");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "SchemaPatcher: ошибка применения патчей схемы");
+            await EnsureCourseLessonsTableAsync(db, cancellationToken);
+            await EnsureLessonCompletionsTableAsync(db, cancellationToken);
+            await EnsureCourseFilesLessonIdAsync(db, cancellationToken);
         }
         finally
         {
-            try
-            {
-                await db.Database.CloseConnectionAsync();
-            }
-            catch
-            {
-                // ignore
-            }
+            await conn.CloseAsync();
         }
     }
 
-    private static async Task<bool> TableExistsAsync(DbConnection conn, string table, CancellationToken ct)
+    private static async Task EnsureCourseLessonsTableAsync(AppDbContext db, CancellationToken cancellationToken)
     {
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_schema = DATABASE() AND table_name = @t
-            """;
-        AddParam(cmd, "@t", table);
-        var scalar = await cmd.ExecuteScalarAsync(ct);
-        return Convert.ToInt32(scalar) > 0;
+        var exists = await TableExistsAsync(db, "CourseLessons", cancellationToken);
+        if (exists)
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `CourseLessons` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `CourseId` int NOT NULL,
+                `Title` varchar(300) CHARACTER SET utf8mb4 NOT NULL,
+                `Description` varchar(4000) CHARACTER SET utf8mb4 NOT NULL,
+                `SortOrder` int NOT NULL,
+                `VideoUrl` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                CONSTRAINT `PK_CourseLessons` PRIMARY KEY (`Id`),
+                CONSTRAINT `FK_CourseLessons_Courses_CourseId` FOREIGN KEY (`CourseId`) REFERENCES `Courses` (`Id`) ON DELETE CASCADE
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX `IX_CourseLessons_CourseId` ON `CourseLessons` (`CourseId`);",
+            cancellationToken);
     }
 
-    private static async Task<bool> ColumnExistsAsync(DbConnection conn, string table, string column, CancellationToken ct)
+    private static async Task EnsureLessonCompletionsTableAsync(AppDbContext db, CancellationToken cancellationToken)
     {
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
+        var exists = await TableExistsAsync(db, "LessonCompletions", cancellationToken);
+        if (exists)
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `LessonCompletions` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `AccountId` int NOT NULL,
+                `CourseLessonId` int NOT NULL,
+                `CompletedAtUtc` datetime(6) NOT NULL,
+                CONSTRAINT `PK_LessonCompletions` PRIMARY KEY (`Id`),
+                CONSTRAINT `FK_LessonCompletions_Accounts_AccountId` FOREIGN KEY (`AccountId`) REFERENCES `Accounts` (`Id`) ON DELETE CASCADE,
+                CONSTRAINT `FK_LessonCompletions_CourseLessons_CourseLessonId` FOREIGN KEY (`CourseLessonId`) REFERENCES `CourseLessons` (`Id`) ON DELETE CASCADE
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX `IX_LessonCompletions_AccountId_CourseLessonId` ON `LessonCompletions` (`AccountId`, `CourseLessonId`);",
+            cancellationToken);
+    }
+
+    private static async Task EnsureCourseFilesLessonIdAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var hasColumn = await ColumnExistsAsync(db, "CourseFiles", "LessonId", cancellationToken);
+        if (hasColumn)
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE `CourseFiles` ADD COLUMN `LessonId` int NULL;",
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            ALTER TABLE `CourseFiles`
+            ADD CONSTRAINT `FK_CourseFiles_CourseLessons_LessonId`
+            FOREIGN KEY (`LessonId`) REFERENCES `CourseLessons` (`Id`) ON DELETE SET NULL;
+            """,
+            cancellationToken);
+    }
+
+    private static async Task<bool> TableExistsAsync(AppDbContext db, string tableName, CancellationToken cancellationToken)
+    {
+        await using var cmd = db.Database.GetDbConnection().CreateCommand();
+        cmd.CommandText =
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = @p0";
+        var p = cmd.CreateParameter();
+        p.ParameterName = "@p0";
+        p.Value = tableName;
+        cmd.Parameters.Add(p);
+        var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(scalar) > 0;
+    }
+
+    private static async Task<bool> ColumnExistsAsync(AppDbContext db, string table, string column, CancellationToken cancellationToken)
+    {
+        await using var cmd = db.Database.GetDbConnection().CreateCommand();
+        cmd.CommandText =
+            """
             SELECT COUNT(*) FROM information_schema.columns
             WHERE table_schema = DATABASE() AND table_name = @t AND column_name = @c
             """;
-        AddParam(cmd, "@t", table);
-        AddParam(cmd, "@c", column);
-        var scalar = await cmd.ExecuteScalarAsync(ct);
-        return Convert.ToInt32(scalar) > 0;
-    }
-
-    private static void AddParam(DbCommand cmd, string name, string value)
-    {
-        var p = cmd.CreateParameter();
-        p.ParameterName = name;
-        p.Value = value;
-        cmd.Parameters.Add(p);
+        var pt = cmd.CreateParameter();
+        pt.ParameterName = "@t";
+        pt.Value = table;
+        cmd.Parameters.Add(pt);
+        var pc = cmd.CreateParameter();
+        pc.ParameterName = "@c";
+        pc.Value = column;
+        cmd.Parameters.Add(pc);
+        var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(scalar) > 0;
     }
 }

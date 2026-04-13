@@ -48,6 +48,13 @@
   color: #1f2937;
 }
 
+.fieldHelp {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
 .input,
 .textarea,
 .select {
@@ -328,22 +335,79 @@
   }
 }
 
-.editLink {
+.courseRowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.textAction {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #4f46e5;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.lessonsLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: #059669;
+  text-decoration: none;
+}
+
+.lessonsLink:hover {
+  text-decoration: underline;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  color: #4e7ee8;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  transition: all 0.2s ease;
+  z-index: 1000;
+  padding: 20px;
 }
 
-.editLink:hover {
-  background: #dbeafe;
-  color: #1d4ed8;
+.modal {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.modalTitle {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.modalCancel {
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  font-weight: 600;
+  cursor: pointer;
+  color: #374151;
 }
 
 .deleteButton {

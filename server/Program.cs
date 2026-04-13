@@ -72,7 +72,7 @@ if (initDb)
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var createdNew = await db.Database.EnsureCreatedAsync();
-        await SchemaPatcher.ApplyAsync(db, app.Logger);
+        await SchemaPatcher.ApplyAsync(db);
         await DatabaseSeeder.SeedIfEmptyAsync(db);
         app.Logger.LogInformation(
             "БД: EnsureCreated (новая схема={Created}). Сид выполнен, если не было курсов.",

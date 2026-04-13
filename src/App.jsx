@@ -11,8 +11,7 @@ import AuthPage from './pages/AuthPage'
 import RegisterPage from './pages/RegisterPage'
 import PendingAccessPage from './pages/PendingAccessPage'
 import ApiCheckPage from './pages/ApiCheckPage'
-import AdminCourseEditPage from './pages/AdminCourseEditPage'
-import LessonPlayerPage from './pages/LessonPlayerPage'
+import AdminCourseLessonsPage from './pages/AdminCourseLessonsPage'
 import './styles/global.css'
 import './App.css'
 
@@ -124,10 +123,10 @@ function App() {
                 }
               />
               <Route
-                path="/admin/courses/:courseId/edit"
+                path="/admin/courses/:courseId/lessons"
                 element={
                   <AdminCoursesRoute>
-                    <AdminCourseEditPage />
+                    <AdminCourseLessonsPage />
                   </AdminCoursesRoute>
                 }
               />
@@ -136,14 +135,6 @@ function App() {
                 element={
                   <CourseAccessRoute>
                     <CourseDetailsPage />
-                  </CourseAccessRoute>
-                }
-              />
-              <Route
-                path="/course/:courseId/lesson/:lessonId"
-                element={
-                  <CourseAccessRoute>
-                    <LessonPlayerPage />
                   </CourseAccessRoute>
                 }
               />

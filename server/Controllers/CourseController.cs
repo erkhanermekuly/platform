@@ -130,8 +130,6 @@ public class CourseController(AppDbContext context) : ControllerBase
             return NotFound(ApiResponse.Error("Курс не найден"));
         }
 
-        var lessonsOrdered = course.Lessons.OrderBy(l => l.SortOrder).ToList();
-
         var result = new
         {
             id = course.Id,
@@ -160,35 +158,27 @@ public class CourseController(AppDbContext context) : ControllerBase
                 lessons = m.Lessons,
                 duration = m.Duration
             }),
-            lessons = lessonsOrdered.Select(l => new
-            {
-                id = l.Id,
-                title = l.Title,
-                description = l.Description,
-                videoUrl = l.VideoUrl,
-                sortOrder = l.SortOrder,
-                materials = course.Files
-                    .Where(f => f.LessonId == l.Id)
-                    .OrderByDescending(f => f.UploadedAt)
-                    .Select(f => new
-                    {
-                        id = f.Id,
-                        name = f.Name,
-                        type = f.Type,
-                        sizeBytes = f.SizeBytes,
-                        uploadedAt = f.UploadedAt,
-                        url = $"/api/courses/{course.Id}/files/{f.Id}/download"
-                    })
-            }),
-            files = course.Files.Where(f => f.LessonId == null).Select(f => new
-            {
-                id = f.Id,
-                name = f.Name,
-                type = f.Type,
-                sizeBytes = f.SizeBytes,
-                uploadedAt = f.UploadedAt,
-                url = $"/api/courses/{course.Id}/files/{f.Id}/download"
-            })
+            lessons = course.Lessons
+                .OrderBy(l => l.SortOrder)
+                .ThenBy(l => l.Id)
+                .Select(l => new
+                {
+                    id = l.Id,
+                    title = l.Title,
+                    description = l.Description,
+                    sortOrder = l.SortOrder,
+                }),
+            files = course.Files
+                .Where(f => f.LessonId == null)
+                .Select(f => new
+                {
+                    id = f.Id,
+                    name = f.Name,
+                    type = f.Type,
+                    sizeBytes = f.SizeBytes,
+                    uploadedAt = f.UploadedAt,
+                    url = $"/api/courses/{course.Id}/files/{f.Id}/download"
+                })
         };
 
         return Ok(ApiResponse<object>.Ok(result));

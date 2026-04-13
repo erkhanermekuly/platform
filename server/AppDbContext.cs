@@ -49,39 +49,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(x => x.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<CourseFileModel>()
-            .HasOne(x => x.Course)
-            .WithMany(x => x.Files)
-            .HasForeignKey(x => x.CourseId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<CourseFileModel>()
-            .HasOne(x => x.Lesson)
-            .WithMany(x => x.Files)
-            .HasForeignKey(x => x.LessonId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         modelBuilder.Entity<LessonCompletionModel>()
-            .HasIndex(x => new { x.AccountId, x.LessonId })
+            .HasIndex(x => new { x.AccountId, x.CourseLessonId })
             .IsUnique();
 
         modelBuilder.Entity<LessonCompletionModel>()
             .HasOne(x => x.Account)
-            .WithMany()
+            .WithMany(x => x.LessonCompletions)
             .HasForeignKey(x => x.AccountId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<LessonCompletionModel>()
+            .HasOne(x => x.CourseLesson)
+            .WithMany(x => x.Completions)
+            .HasForeignKey(x => x.CourseLessonId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CourseFileModel>()
             .HasOne(x => x.Course)
-            .WithMany()
+            .WithMany(x => x.Files)
             .HasForeignKey(x => x.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<LessonCompletionModel>()
+        modelBuilder.Entity<CourseFileModel>()
             .HasOne(x => x.Lesson)
-            .WithMany()
+            .WithMany(x => x.Files)
             .HasForeignKey(x => x.LessonId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<LearningModel>()
             .HasIndex(x => new { x.AccountId, x.CourseId })

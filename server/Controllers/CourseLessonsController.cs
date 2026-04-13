@@ -3,15 +3,65 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.DTOs;
 using server.Models;
+
 namespace server.Controllers;
 
-[Authorize]
 [Route("api/courses/{courseId:int}/lessons")]
 [ApiController]
-public class CourseLessonsController(AppDbContext context, IWebHostEnvironment env) : ControllerBase
+[Authorize(Roles = "admin")]
+public class CourseLessonsController(AppDbContext context) : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> ListLessons(int courseId)
+    {
+        var exists = await context.Courses.AsNoTracking().AnyAsync(c => c.Id == courseId);
+        if (!exists)
+        {
+            return NotFound(ApiResponse.Error("Курс не найден"));
+        }
+
+        var lessons = await context.CourseLessons
+            .AsNoTracking()
+            .Where(l => l.CourseId == courseId)
+            .OrderBy(l => l.SortOrder)
+            .ThenBy(l => l.Id)
+            .ToListAsync();
+
+        var files = await context.CourseFiles
+            .AsNoTracking()
+            .Where(f => f.CourseId == courseId && f.LessonId != null)
+            .OrderByDescending(f => f.UploadedAt)
+            .ToListAsync();
+
+        var byLesson = files.GroupBy(f => f.LessonId!.Value).ToDictionary(g => g.Key, g => g.ToList());
+
+        var payload = lessons.Select(l =>
+        {
+            var list = byLesson.TryGetValue(l.Id, out var lf) ? lf : new List<CourseFileModel>();
+            return new
+            {
+                id = l.Id,
+                title = l.Title,
+                description = l.Description,
+                sortOrder = l.SortOrder,
+                videoUrl = l.VideoUrl,
+                materials = list
+                    .Select(f => new
+                    {
+                        id = f.Id,
+                        name = f.Name,
+                        type = f.Type,
+                        url = $"/api/courses/{courseId}/files/{f.Id}/download",
+                    })
+                    .ToList(),
+            };
+        }).ToList();
+
+        return Ok(ApiResponse<object>.Ok(payload));
+    }
+
     [HttpPost]
-    public async Task<IActionResult> Create(int courseId, [FromBody] CourseLessonUpsertDto dto)
+    public async Task<IActionResult> CreateLesson(int courseId, [FromBody] CourseLessonUpsertDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -28,18 +78,19 @@ public class CourseLessonsController(AppDbContext context, IWebHostEnvironment e
         {
             CourseId = courseId,
             Title = dto.Title.Trim(),
-            Description = dto.Description.Trim(),
+            Description = (dto.Description ?? string.Empty).Trim(),
             SortOrder = dto.SortOrder,
+            VideoUrl = string.IsNullOrWhiteSpace(dto.VideoUrl) ? null : dto.VideoUrl.Trim(),
         };
 
         context.CourseLessons.Add(lesson);
         await context.SaveChangesAsync();
 
-        return StatusCode(StatusCodes.Status201Created, ApiResponse<object>.Ok(new { id = lesson.Id }));
+        return CreatedAtAction(nameof(ListLessons), new { courseId }, ApiResponse<object>.Ok(new { id = lesson.Id }));
     }
 
     [HttpPut("{lessonId:int}")]
-    public async Task<IActionResult> Update(int courseId, int lessonId, [FromBody] CourseLessonUpsertDto dto)
+    public async Task<IActionResult> UpdateLesson(int courseId, int lessonId, [FromBody] CourseLessonUpsertDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -53,8 +104,9 @@ public class CourseLessonsController(AppDbContext context, IWebHostEnvironment e
         }
 
         lesson.Title = dto.Title.Trim();
-        lesson.Description = dto.Description.Trim();
+        lesson.Description = (dto.Description ?? string.Empty).Trim();
         lesson.SortOrder = dto.SortOrder;
+        lesson.VideoUrl = string.IsNullOrWhiteSpace(dto.VideoUrl) ? null : dto.VideoUrl.Trim();
 
         await context.SaveChangesAsync();
 
@@ -62,7 +114,7 @@ public class CourseLessonsController(AppDbContext context, IWebHostEnvironment e
     }
 
     [HttpDelete("{lessonId:int}")]
-    public async Task<IActionResult> Delete(int courseId, int lessonId)
+    public async Task<IActionResult> DeleteLesson(int courseId, int lessonId)
     {
         var lesson = await context.CourseLessons.FirstOrDefaultAsync(l => l.Id == lessonId && l.CourseId == courseId);
         if (lesson is null)
@@ -74,69 +126,5 @@ public class CourseLessonsController(AppDbContext context, IWebHostEnvironment e
         await context.SaveChangesAsync();
 
         return Ok(ApiResponse.Ok("Урок удалён"));
-    }
-
-    /// <summary>Загрузить видео урока (один файл). Сохраняется как материал и выставляется VideoUrl.</summary>
-    [HttpPost("{lessonId:int}/video")]
-    [RequestSizeLimit(500_000_000)]
-    public async Task<IActionResult> UploadVideo(int courseId, int lessonId)
-    {
-        var lesson = await context.CourseLessons.FirstOrDefaultAsync(l => l.Id == lessonId && l.CourseId == courseId);
-        if (lesson is null)
-        {
-            return NotFound(ApiResponse.Error("Урок не найден"));
-        }
-
-        if (Request.Form.Files.Count != 1)
-        {
-            return BadRequest(ApiResponse.Error("Нужно передать ровно один видеофайл"));
-        }
-
-        var formFile = Request.Form.Files[0];
-        if (formFile.Length <= 0)
-        {
-            return BadRequest(ApiResponse.Error("Пустой файл"));
-        }
-
-        var ext = Path.GetExtension(formFile.FileName).ToLowerInvariant();
-        if (ext is not (".mp4" or ".webm" or ".mov"))
-        {
-            return BadRequest(ApiResponse.Error("Допустимы форматы: mp4, webm, mov"));
-        }
-
-        var uploadRoot = Path.Combine(env.ContentRootPath, "uploads", "courses", courseId.ToString());
-        Directory.CreateDirectory(uploadRoot);
-
-        var originalName = Path.GetFileName(formFile.FileName);
-        var safeName = $"lesson-{lessonId}-{Guid.NewGuid():N}{ext}";
-        var fullPath = Path.Combine(uploadRoot, safeName);
-
-        await using (var stream = System.IO.File.Create(fullPath))
-        {
-            await formFile.CopyToAsync(stream);
-        }
-
-        var fileRow = new CourseFileModel
-        {
-            CourseId = courseId,
-            LessonId = lessonId,
-            Name = originalName,
-            Type = ext.TrimStart('.'),
-            RelativePath = Path.Combine("uploads", "courses", courseId.ToString(), safeName).Replace("\\", "/"),
-            SizeBytes = formFile.Length,
-            UploadedAt = DateTime.UtcNow,
-        };
-
-        context.CourseFiles.Add(fileRow);
-        await context.SaveChangesAsync();
-
-        lesson.VideoUrl = $"/api/courses/{courseId}/files/{fileRow.Id}/download";
-        await context.SaveChangesAsync();
-
-        return Ok(ApiResponse<object>.Ok(new
-        {
-            videoUrl = lesson.VideoUrl,
-            fileId = fileRow.Id,
-        }, "Видео загружено"));
     }
 }
