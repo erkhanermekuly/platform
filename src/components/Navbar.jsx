@@ -17,7 +17,7 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  const coursesPath = canCourses ? coursesSectionPath(userRole) : '/courses';
+  const coursesPath = canCourses ? coursesSectionPath(userRole) : '/pending';
 
   if (location.pathname === '/login' || location.pathname === '/register') {
     return null;
@@ -28,7 +28,7 @@ export default function Navbar() {
       <div className="navbar-container">
         {/* Logo */}
         <Link
-          to={isAuthenticated ? (canCourses ? coursesSectionPath(userRole) : '/pending') : '/login'}
+          to={isAuthenticated ? '/home' : '/login'}
           className="navbar-logo"
         >
           <span className="logo-icon">📚</span>
@@ -47,7 +47,7 @@ export default function Navbar() {
 
         {/* Navigation Links */}
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
-          {canCourses && (
+          {isAuthenticated && (
             <>
               <Link
                 to="/home"
@@ -63,13 +63,15 @@ export default function Navbar() {
               >
                 Курсы
               </Link>
-              <Link
-                to="/my-learning"
-                className={`nav-link ${isActive('/my-learning') ? 'active' : ''}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Мое обучение
-              </Link>
+              {canCourses && (
+                <Link
+                  to="/my-learning"
+                  className={`nav-link ${isActive('/my-learning') ? 'active' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Мое обучение
+                </Link>
+              )}
             </>
           )}
           {isAuthenticated && !canCourses && (

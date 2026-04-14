@@ -53,7 +53,12 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+// В Development Vite шлёт запросы на http://127.0.0.1:5240 — редирект на HTTPS может ломать прокси и давать «пустые» ответы.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseCors("frontend");
 
 app.UseAuthentication();

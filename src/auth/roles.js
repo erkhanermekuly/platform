@@ -1,4 +1,4 @@
-/** Роли, которым разрешён доступ к курсам и материалам */
+/** Роли, которым разрешён доступ к платным курсам */
 export const COURSE_ACCESS_ROLES = ['admin', 'teacher'];
 
 export function hasCourseAccess(role) {
@@ -12,11 +12,13 @@ export function coursesSectionPath(role) {
 
 /** Куда вести после успешного входа или регистрации */
 export function pathAfterAuth(role, fromPath) {
-  if (!hasCourseAccess(role)) return '/pending';
-  const skip = ['/login', '/register', '/pending'];
+  const skip = ['/login', '/register'];
   if (fromPath && !skip.includes(fromPath)) {
+    if (!hasCourseAccess(role) && (fromPath === '/courses' || fromPath === '/admin/courses')) {
+      return '/pending';
+    }
     if (role === 'admin' && fromPath === '/courses') return '/admin/courses';
     return fromPath;
   }
-  return coursesSectionPath(role);
+  return '/home';
 }

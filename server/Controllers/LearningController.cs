@@ -57,6 +57,16 @@ public class LearningController(AppDbContext context) : ControllerBase
             return NotFound(ApiResponse.Error("Курс не найден"));
         }
 
+        if (course.Price > 0)
+        {
+            var hasPaid = await context.Payments.AnyAsync(p =>
+                p.AccountId == userId && p.CourseId == courseId && p.Status == "completed");
+            if (!hasPaid)
+            {
+                return BadRequest(ApiResponse.Error("Для платного курса сначала оформите оплату — после неё откроется первый урок."));
+            }
+        }
+
         var existing = await context.Learnings.FirstOrDefaultAsync(x => x.AccountId == userId && x.CourseId == courseId);
         if (existing is not null)
         {

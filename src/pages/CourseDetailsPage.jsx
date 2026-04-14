@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { coursesAPI, reviewsAPI, learningAPI } from '../api/courseService';
 import { useAuth } from '../context/AuthContext';
+import { AppContext } from '../context/AppContext';
+import PaymentModal from '../components/PaymentModal/PaymentModal';
 import '../styles/pages.css';
 
 function isYoutubeUrl(url) {
@@ -14,14 +16,20 @@ export default function CourseDetailsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { purchaseCourse, enrollFreeCourse, purchasedCourses } = useContext(AppContext);
 
   const [course, setCourse] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [enrolled, setEnrolled] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, text: '' });
   const [activeTab, setActiveTab] = useState('overview');
+
+  const cid = Number(courseId);
+  const inMyLearning = Number.isFinite(cid) && purchasedCourses.includes(cid);
+  const hasAccess = enrolled || inMyLearning;
 
   const [curriculum, setCurriculum] = useState(null);
   const [curriculumError, setCurriculumError] = useState(null);
@@ -40,6 +48,7 @@ export default function CourseDetailsPage() {
       setCurriculumError(null);
       return;
     }
+    const numericId = Number(courseId);
     try {
       const res = await learningAPI.getCourseCurriculum(courseId);
       const rows = Array.isArray(res?.data) ? res.data : [];
@@ -56,9 +65,11 @@ export default function CourseDetailsPage() {
     } catch {
       setCurriculum(null);
       setCurriculumError('curriculum');
-      setEnrolled(false);
+      if (!Number.isFinite(numericId) || !purchasedCourses.includes(numericId)) {
+        setEnrolled(false);
+      }
     }
-  }, [courseId, isAuthenticated]);
+  }, [courseId, isAuthenticated, purchasedCourses]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -66,18 +77,24 @@ export default function CourseDetailsPage() {
       return;
     }
     let cancelled = false;
+    const numericId = Number(courseId);
     learningAPI
       .getCourseCurriculum(courseId)
       .then(() => {
         if (!cancelled) setEnrolled(true);
       })
       .catch(() => {
-        if (!cancelled) setEnrolled(false);
+        if (
+          !cancelled &&
+          (!Number.isFinite(numericId) || !purchasedCourses.includes(numericId))
+        ) {
+          setEnrolled(false);
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, courseId]);
+  }, [isAuthenticated, courseId, purchasedCourses]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,25 +120,45 @@ export default function CourseDetailsPage() {
     }
   }, [activeTab, isAuthenticated, loadCurriculum]);
 
-  const handleEnroll = async () => {
+  const openCurriculumAfterAccess = useCallback(async () => {
+    setActiveTab('curriculum');
+    await loadCurriculum();
+  }, [loadCurriculum]);
+
+  const handleGetAccess = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-
-    setEnrolling(true);
-    try {
-      const result = await learningAPI.enrollCourse(courseId);
-      if (result.success) {
-        setEnrolled(true);
-        alert('Вы успешно зарегистрировались на курс!');
-        await loadCurriculum();
-      }
-    } catch (error) {
-      alert('Ошибка при регистрации на курс');
-    } finally {
-      setEnrolling(false);
+    if (hasAccess) {
+      await openCurriculumAfterAccess();
+      return;
     }
+
+    const isFree = !course || Number(course.price) <= 0;
+    if (isFree) {
+      setEnrolling(true);
+      try {
+        await enrollFreeCourse(courseId);
+        setEnrolled(true);
+        await openCurriculumAfterAccess();
+      } catch (e) {
+        alert(e?.message || 'Не удалось открыть доступ к урокам');
+      } finally {
+        setEnrolling(false);
+      }
+      return;
+    }
+
+    setPaymentOpen(true);
+  };
+
+  const handlePaymentConfirm = async (paidCourse) => {
+    if (!paidCourse) return;
+    await purchaseCourse(paidCourse.id, paidCourse.price);
+    setEnrolled(true);
+    setPaymentOpen(false);
+    await openCurriculumAfterAccess();
   };
 
   const handleAddReview = async (e) => {
@@ -210,12 +247,26 @@ export default function CourseDetailsPage() {
             </div>
 
             <button
-              onClick={handleEnroll}
-              disabled={enrolling || enrolled}
-              className={`btn ${enrolled ? 'btn-success' : 'btn-primary'} btn-large`}
+              type="button"
+              onClick={handleGetAccess}
+              disabled={enrolling}
+              className={`btn ${hasAccess ? 'btn-success' : 'btn-primary'} btn-large`}
             >
-              {enrolled ? '✓ Вы записаны' : enrolling ? 'Записание...' : 'Записаться на курс'}
+              {!isAuthenticated
+                ? 'Войти и получить доступ к урокам'
+                : enrolling
+                  ? 'Открываем доступ…'
+                  : hasAccess
+                    ? 'К программе и урокам'
+                    : Number(course.price) > 0
+                      ? 'Купить и открыть 1-й урок'
+                      : 'Начать бесплатно — 1-й урок'}
             </button>
+            {isAuthenticated && hasAccess && (
+              <p className="curriculum-hint" style={{ marginTop: 12 }}>
+                Доступ открыт: в программе доступен 1-й урок; остальные — после завершения предыдущего.
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -296,21 +347,24 @@ export default function CourseDetailsPage() {
             <h2>Программа курса</h2>
 
             {!isAuthenticated && (
-              <p className="curriculum-hint">Войдите и запишитесь на курс, чтобы смотреть уроки по порядку.</p>
-            )}
-
-            {isAuthenticated && curriculumError && !enrolled && (
               <p className="curriculum-hint">
-                Запишитесь на курс, чтобы открыть уроки. Следующие уроки станут доступны после просмотра
-                предыдущего до конца.
+                Войдите в аккаунт. Для бесплатного курса нажмите «Начать бесплатно»; для платного — оплатите на
+                странице курса — после этого сразу откроется первый урок.
               </p>
             )}
 
-            {isAuthenticated && enrolled && curriculum && curriculum.length === 0 && (
+            {isAuthenticated && curriculumError && !hasAccess && (
+              <p className="curriculum-hint">
+                Ещё нет доступа к урокам: для платного курса завершите оплату; для бесплатного — нажмите «Начать
+                бесплатно» в шапке страницы. Дальше уроки открываются по порядку.
+              </p>
+            )}
+
+            {isAuthenticated && hasAccess && curriculum && curriculum.length === 0 && (
               <p>Для этого курса ещё не добавлены уроки. Загляните позже.</p>
             )}
 
-            {isAuthenticated && enrolled && curriculum && curriculum.length > 0 && (
+            {isAuthenticated && hasAccess && curriculum && curriculum.length > 0 && (
               <div className="curriculum-layout">
                 <div className="curriculum-sidebar">
                   <h3 className="curriculum-sidebar-title">Уроки</h3>
@@ -419,9 +473,11 @@ export default function CourseDetailsPage() {
               </div>
             )}
 
-            {!enrolled && outlineLessons && (
+            {!hasAccess && outlineLessons && (
               <div className="modules-list">
-                <p style={{ marginBottom: 16, color: '#6b7280' }}>План курса (после записи — доступ по порядку):</p>
+                <p style={{ marginBottom: 16, color: '#6b7280' }}>
+                  План курса (после покупки или старта бесплатного курса — доступ с 1-го урока по порядку):
+                </p>
                 {outlineLessons.map((lesson, index) => (
                   <div key={lesson.id} className="module">
                     <div className="module-header">
@@ -435,7 +491,7 @@ export default function CourseDetailsPage() {
               </div>
             )}
 
-            {!enrolled && !outlineLessons && course.modules && (
+            {!hasAccess && !outlineLessons && course.modules && (
               <div className="modules-list">
                 {course.modules.map((module, index) => (
                   <div key={module.id} className="module">
@@ -508,6 +564,13 @@ export default function CourseDetailsPage() {
           </section>
         )}
       </div>
+
+      <PaymentModal
+        isOpen={paymentOpen}
+        course={course}
+        onClose={() => setPaymentOpen(false)}
+        onConfirm={handlePaymentConfirm}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { AppProvider } from './context/AppContext'
 import { hasCourseAccess, coursesSectionPath } from './auth/roles'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
+import ResourceCategoryPage from './pages/ResourceCategoryPage'
 import CoursesPage from './pages/CoursesPage'
 import CourseDetailsPage from './pages/CourseDetailsPage'
 import MyLearningPage from './pages/MyLearningPage'
@@ -24,6 +25,15 @@ function CourseAccessRoute({ children }) {
   }
   if (!hasCourseAccess(userRole)) {
     return <Navigate to="/pending" replace />;
+  }
+  return children;
+}
+
+function AuthenticatedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   return children;
 }
@@ -57,10 +67,10 @@ function AdminCoursesRoute({ children }) {
 }
 
 function PublicAuthRoute({ children }) {
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to={hasCourseAccess(userRole) ? coursesSectionPath(userRole) : '/pending'} replace />;
+    return <Navigate to="/home" replace />;
   }
   return children;
 }
@@ -73,7 +83,14 @@ function App() {
           <Navbar />
           <main>
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route
+                path="/"
+                element={
+                  <AuthenticatedRoute>
+                    <Navigate to="/home" replace />
+                  </AuthenticatedRoute>
+                }
+              />
               <Route
                 path="/login"
                 element={
@@ -101,9 +118,9 @@ function App() {
               <Route
                 path="/home"
                 element={
-                  <CourseAccessRoute>
+                  <AuthenticatedRoute>
                     <HomePage />
-                  </CourseAccessRoute>
+                  </AuthenticatedRoute>
                 }
               />
               <Route
@@ -112,6 +129,14 @@ function App() {
                   <CourseAccessRoute>
                     <CoursesPage />
                   </CourseAccessRoute>
+                }
+              />
+              <Route
+                path="/resources/:kind"
+                element={
+                  <AuthenticatedRoute>
+                    <ResourceCategoryPage />
+                  </AuthenticatedRoute>
                 }
               />
               <Route

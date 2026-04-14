@@ -1,5 +1,5 @@
 import { createContext, useReducer, useCallback, createElement, useEffect } from 'react';
-import { coursesAPI, learningAPI, filesAPI } from '../api/courseService';
+import { coursesAPI, learningAPI, filesAPI, paymentsAPI } from '../api/courseService';
 import { useAuth } from './AuthContext';
 import { hasCourseAccess } from '../auth/roles';
 
@@ -152,9 +152,34 @@ export const AppProvider = ({ children }) => {
     [fetchCoursesFromApi]
   );
 
-  const buyCourse = useCallback((courseId) => {
-    dispatch({ type: 'BUY_COURSE', payload: courseId });
+  const syncPurchasedFromServer = useCallback(async () => {
+    const response = await learningAPI.getMyLearning();
+    if (response.success && Array.isArray(response.data)) {
+      dispatch({ type: 'SET_PURCHASED', payload: response.data.map((row) => row.courseId) });
+    }
   }, []);
+
+  /** Платный курс: фиксирует оплату на сервере, создаёт доступ к урокам, обновляет список «Моё обучение». */
+  const purchaseCourse = useCallback(
+    async (courseId, amount) => {
+      const id = Number(courseId);
+      await paymentsAPI.processPayment(id, amount);
+      dispatch({ type: 'BUY_COURSE', payload: id });
+      await syncPurchasedFromServer();
+    },
+    [syncPurchasedFromServer]
+  );
+
+  /** Бесплатный курс: одна запись на сервере — сразу открывается 1-й урок (без отдельного шага «оплата»). */
+  const enrollFreeCourse = useCallback(
+    async (courseId) => {
+      const id = Number(courseId);
+      await learningAPI.enrollCourse(id);
+      dispatch({ type: 'BUY_COURSE', payload: id });
+      await syncPurchasedFromServer();
+    },
+    [syncPurchasedFromServer]
+  );
 
   const deleteCourse = useCallback(
     async (courseId) => {
@@ -170,7 +195,8 @@ export const AppProvider = ({ children }) => {
     coursesLoading: state.coursesLoading,
     coursesError: state.coursesError,
     addCourse,
-    buyCourse,
+    purchaseCourse,
+    enrollFreeCourse,
     deleteCourse,
     refreshCourses: fetchCoursesFromApi,
     dispatch,

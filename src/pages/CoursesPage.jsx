@@ -11,7 +11,7 @@ export default function CoursesPage() {
   const {
     courses,
     purchasedCourses,
-    buyCourse,
+    purchaseCourse,
     addCourse,
     deleteCourse,
     coursesLoading,
@@ -36,9 +36,14 @@ export default function CoursesPage() {
     navigate(`/course/${course.id}`);
   };
 
-  const handlePaymentConfirm = (courseId) => {
-    buyCourse(courseId);
-    alert('✅ Спасибо за покупку! Курс разблокирован.');
+  const handlePaymentConfirm = async (course) => {
+    if (!course) return;
+    try {
+      await purchaseCourse(course.id, course.price);
+      alert('✅ Оплата принята. Откройте курс — в программе доступен первый урок.');
+    } catch (e) {
+      alert(e?.message || 'Не удалось провести оплату');
+    }
   };
 
   const handleAddCourse = async (courseData) => {

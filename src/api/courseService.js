@@ -117,23 +117,40 @@ export const coursesAPI = {
     }),
 };
 
-export const lessonsAPI = {
-  list: async (courseId) => request(`/courses/${courseId}/lessons`),
+const assertNumericCourseId = (courseId, action) => {
+  const n = Number(courseId);
+  if (!Number.isFinite(n) || n < 1) {
+    throw new Error(`Некорректный id курса для ${action}. Обновите страницу и выберите курс снова.`);
+  }
+  return n;
+};
 
-  create: async (courseId, body) =>
-    request(`/courses/${courseId}/lessons`, {
+export const lessonsAPI = {
+  list: async (courseId) => {
+    const id = assertNumericCourseId(courseId, 'списка уроков');
+    return request(`/courses/${id}/lessons`);
+  },
+
+  create: async (courseId, body) => {
+    const id = assertNumericCourseId(courseId, 'создания урока');
+    return request(`/courses/${id}/lessons`, {
       method: 'POST',
       body: JSON.stringify(body),
-    }),
+    });
+  },
 
-  update: async (courseId, lessonId, body) =>
-    request(`/courses/${courseId}/lessons/${lessonId}`, {
+  update: async (courseId, lessonId, body) => {
+    const cid = assertNumericCourseId(courseId, 'обновления урока');
+    return request(`/courses/${cid}/lessons/${lessonId}`, {
       method: 'PUT',
       body: JSON.stringify(body),
-    }),
+    });
+  },
 
-  delete: async (courseId, lessonId) =>
-    request(`/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE' }),
+  delete: async (courseId, lessonId) => {
+    const cid = assertNumericCourseId(courseId, 'удаления урока');
+    return request(`/courses/${cid}/lessons/${lessonId}`, { method: 'DELETE' });
+  },
 };
 
 export const authAPI = {
@@ -185,6 +202,51 @@ export const reviewsAPI = {
 
 export const categoriesAPI = {
   getCategories: async () => request('/categories'),
+};
+
+export const resourcesAPI = {
+  documents: {
+    list: async () => request('/resources/documents'),
+    create: async (body) =>
+      request('/resources/documents', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    update: async (id, body) =>
+      request(`/resources/documents/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    remove: async (id) => request(`/resources/documents/${id}`, { method: 'DELETE' }),
+  },
+  scenarios: {
+    list: async () => request('/resources/scenarios'),
+    create: async (body) =>
+      request('/resources/scenarios', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    update: async (id, body) =>
+      request(`/resources/scenarios/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    remove: async (id) => request(`/resources/scenarios/${id}`, { method: 'DELETE' }),
+  },
+  materials: {
+    list: async () => request('/resources/materials'),
+    create: async (body) =>
+      request('/resources/materials', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    update: async (id, body) =>
+      request(`/resources/materials/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    remove: async (id) => request(`/resources/materials/${id}`, { method: 'DELETE' }),
+  },
 };
 
 export const paymentsAPI = {

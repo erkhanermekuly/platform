@@ -7,6 +7,7 @@ using server.Models;
 namespace server.Controllers;
 
 [Route("api/courses/{courseId:int}/lessons")]
+[Route("api/course/{courseId:int}/lessons")]
 [ApiController]
 [Authorize(Roles = "admin")]
 public class CourseLessonsController(AppDbContext context) : ControllerBase

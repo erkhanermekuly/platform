@@ -2,7 +2,9 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, Upload } from 'lucide-react';
 import { AppContext } from '../../context/AppContext';
-import { coursesAPI } from '../../api/courseService';
+import { coursesAPI, resourcesAPI } from '../../api/courseService';
+import AdminCourseLessonsInline from './AdminCourseLessonsInline';
+import AdminResourceManager from './AdminResourceManager';
 import styles from './AdminPanel.module.css';
 
 const PLACEHOLDER_IMG =
@@ -14,6 +16,7 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [lessonsPanelCourseId, setLessonsPanelCourseId] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -133,6 +136,9 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
       <div className={styles.container}>
         <div className={styles.formSection}>
           <h2 className={styles.sectionTitle}>📝 Добавить новый курс</h2>
+          <p className={styles.formSectionHint}>
+            Уроки добавляются отдельно: в списке курсов справа нажмите «Уроки курса» у нужного курса.
+          </p>
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
@@ -297,50 +303,103 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
               {isSubmitting ? 'Сохранение…' : '➕ Добавить курс'}
             </button>
           </form>
+
+          <div className={styles.resourceAdminsWrap}>
+            <AdminResourceManager
+              title="📘 Нормативные документы"
+              subtitle="Этот раздел видят все пользователи на отдельной странице."
+              listApi={resourcesAPI.documents.list}
+              createApi={resourcesAPI.documents.create}
+              updateApi={resourcesAPI.documents.update}
+              deleteApi={resourcesAPI.documents.remove}
+              emptyLabel="Пока нет документов"
+            />
+            <AdminResourceManager
+              title="🧩 Сценарии мероприятий"
+              subtitle="Добавляйте сценарии отдельно от документов и материалов."
+              listApi={resourcesAPI.scenarios.list}
+              createApi={resourcesAPI.scenarios.create}
+              updateApi={resourcesAPI.scenarios.update}
+              deleteApi={resourcesAPI.scenarios.remove}
+              emptyLabel="Пока нет сценариев"
+            />
+            <AdminResourceManager
+              title="🗂️ Дополнительные материалы"
+              subtitle="Отдельная таблица и отдельный каталог материалов."
+              listApi={resourcesAPI.materials.list}
+              createApi={resourcesAPI.materials.create}
+              updateApi={resourcesAPI.materials.update}
+              deleteApi={resourcesAPI.materials.remove}
+              emptyLabel="Пока нет материалов"
+            />
+          </div>
         </div>
 
         <div className={styles.listSection}>
           <h2 className={styles.sectionTitle}>📚 Все курсы ({courses.length})</h2>
+          <p className={styles.listSectionHint}>
+            У каждого курса нажмите «Уроки курса», чтобы добавить уроки прямо здесь (название, описание, YouTube).
+          </p>
 
           <div className={styles.coursesList}>
             {courses.length === 0 ? (
               <p className={styles.emptyMessage}>Нет курсов. Добавьте первый курс!</p>
             ) : (
               courses.map((course) => (
-                <div key={course.id} className={styles.courseItem}>
-                  <img
-                    src={course.image || PLACEHOLDER_IMG}
-                    alt={course.title}
-                    className={styles.courseThumbnail}
-                  />
-                  <div className={styles.courseInfo}>
-                    <h4 className={styles.courseTitle}>{course.title}</h4>
-                    <p className={styles.courseDesc}>{course.description}</p>
-                    <div className={styles.courseFooter}>
-                      <span className={styles.courseMeta}>
-                        👨‍🏫 {course.instructor || 'No instructor'}
-                      </span>
-                      <span className={`${styles.courseMeta} ${styles.price}`}>
-                        {course.price > 0 ? `${course.price} ₸` : 'Бесплатно'}
-                      </span>
+                <div key={course.id} className={styles.courseRowWrap}>
+                  <div className={styles.courseItem}>
+                    <img
+                      src={course.image || PLACEHOLDER_IMG}
+                      alt={course.title}
+                      className={styles.courseThumbnail}
+                    />
+                    <div className={styles.courseInfo}>
+                      <h4 className={styles.courseTitle}>{course.title}</h4>
+                      <p className={styles.courseDesc}>{course.description}</p>
+                      <div className={styles.courseFooter}>
+                        <span className={styles.courseMeta}>
+                          👨‍🏫 {course.instructor || 'No instructor'}
+                        </span>
+                        <span className={`${styles.courseMeta} ${styles.price}`}>
+                          {course.price > 0 ? `${course.price} ₸` : 'Бесплатно'}
+                        </span>
+                      </div>
+                      <div className={styles.courseRowActions}>
+                        <button type="button" className={styles.textAction} onClick={() => openEdit(course)}>
+                          Редактировать курс
+                        </button>
+                        <button
+                          type="button"
+                          className={
+                            lessonsPanelCourseId === course.id
+                              ? `${styles.lessonsToggleBtn} ${styles.lessonsToggleBtnActive}`
+                              : styles.lessonsToggleBtn
+                          }
+                          onClick={() =>
+                            setLessonsPanelCourseId((id) => (id === course.id ? null : course.id))
+                          }
+                        >
+                          {lessonsPanelCourseId === course.id ? '▲ Свернуть уроки' : '▼ Уроки курса'}
+                        </button>
+                        <Link to={`/admin/courses/${course.id}/lessons`} className={styles.lessonsLink}>
+                          Страница уроков →
+                        </Link>
+                      </div>
                     </div>
-                    <div className={styles.courseRowActions}>
-                      <button type="button" className={styles.textAction} onClick={() => openEdit(course)}>
-                        Редактировать
-                      </button>
-                      <Link to={`/admin/courses/${course.id}/lessons`} className={styles.lessonsLink}>
-                        Уроки →
-                      </Link>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteCourse(course.id)}
+                      className={styles.deleteButton}
+                      title="Удалить курс"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteCourse(course.id)}
-                    className={styles.deleteButton}
-                    title="Удалить курс"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                  <AdminCourseLessonsInline
+                    courseId={course.id}
+                    isOpen={lessonsPanelCourseId === course.id}
+                    onLessonsChanged={refreshCourses}
+                  />
                 </div>
               ))
             )}

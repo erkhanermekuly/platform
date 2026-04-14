@@ -11,7 +11,11 @@ public static class DatabaseSeeder
     public static async Task SeedIfEmptyAsync(AppDbContext context, CancellationToken cancellationToken = default)
     {
         if (await context.Courses.AnyAsync(cancellationToken))
+        {
+            await SeedResourcesIfEmptyAsync(context, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             return;
+        }
 
         var admin = CreateAccount(
             "Иван Иванов",
@@ -111,7 +115,69 @@ public static class DatabaseSeeder
                 PaidAt = DateTime.UtcNow.AddDays(-2),
             });
 
+        await SeedResourcesIfEmptyAsync(context, cancellationToken);
+
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task SeedResourcesIfEmptyAsync(AppDbContext context, CancellationToken cancellationToken)
+    {
+        if (!await context.NormativeDocuments.AnyAsync(cancellationToken))
+        {
+            context.NormativeDocuments.AddRange(
+                new NormativeDocumentModel
+                {
+                    Title = "Типовая образовательная программа ДО",
+                    Description = "Базовые требования к содержанию, условиям и результатам дошкольного образования.",
+                    Url = "https://adilet.zan.kz/rus",
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
+                },
+                new NormativeDocumentModel
+                {
+                    Title = "Санитарные требования для ДО",
+                    Description = "Краткий ориентир по санитарным нормам организации образовательной среды.",
+                    Url = "https://adilet.zan.kz/rus",
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+                });
+        }
+
+        if (!await context.EventScenarios.AnyAsync(cancellationToken))
+        {
+            context.EventScenarios.AddRange(
+                new EventScenarioModel
+                {
+                    Title = "Сценарий утренника «Осенний бал»",
+                    Description = "Пошаговый план с распределением ролей, музыкальными паузами и реквизитом.",
+                    Url = null,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-3),
+                },
+                new EventScenarioModel
+                {
+                    Title = "Сценарий тематического дня «Безопасность»",
+                    Description = "Интерактивные задания и мини-игры для закрепления правил безопасности.",
+                    Url = null,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+                });
+        }
+
+        if (!await context.AdditionalMaterials.AnyAsync(cancellationToken))
+        {
+            context.AdditionalMaterials.AddRange(
+                new AdditionalMaterialModel
+                {
+                    Title = "Шаблон недельного плана занятий",
+                    Description = "Готовый шаблон для быстрого планирования занятий и развивающих активностей.",
+                    Url = null,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
+                },
+                new AdditionalMaterialModel
+                {
+                    Title = "Карточки для развития речи",
+                    Description = "Подборка карточек и упражнений для групповой и индивидуальной работы.",
+                    Url = null,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+                });
+        }
     }
 
     private static AccountModel CreateAccount(string name, string email, string role, string avatar) =>

@@ -23,6 +23,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<PaymentModel> Payments { get; set; }
 
+    public DbSet<NormativeDocumentModel> NormativeDocuments { get; set; }
+
+    public DbSet<EventScenarioModel> EventScenarios { get; set; }
+
+    public DbSet<AdditionalMaterialModel> AdditionalMaterials { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -116,5 +122,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany(x => x.Payments)
             .HasForeignKey(x => x.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<NormativeDocumentModel>()
+            .Property(x => x.CreatedAtUtc)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        modelBuilder.Entity<EventScenarioModel>()
+            .Property(x => x.CreatedAtUtc)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        modelBuilder.Entity<AdditionalMaterialModel>()
+            .Property(x => x.CreatedAtUtc)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
     }
 }

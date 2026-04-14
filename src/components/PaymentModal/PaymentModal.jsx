@@ -9,11 +9,14 @@ const PaymentModal = ({ isOpen, course, onClose, onConfirm }) => {
 
   const handleConfirm = async () => {
     setIsProcessing(true);
-    // Имитируем обработку платежа
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    onConfirm(course.id);
-    setIsProcessing(false);
-    onClose();
+    try {
+      await onConfirm(course);
+      onClose();
+    } catch (e) {
+      alert(e?.message || 'Не удалось подтвердить оплату');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (

@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCourses } from '../hooks/useApi';
+import { useAuth } from '../context/AuthContext';
+import { hasCourseAccess, coursesSectionPath } from '../auth/roles';
 import '../styles/pages.css';
 
 export default function HomePage() {
   const { courses, loading } = useCourses();
+  const { userRole } = useAuth();
   const [category, setCategory] = useState('all');
+  const canCourses = hasCourseAccess(userRole);
+  const coursesPath = canCourses ? coursesSectionPath(userRole) : '/pending';
 
   const filteredCourses = category === 'all' 
     ? courses.slice(0, 3)
@@ -18,10 +23,11 @@ export default function HomePage() {
         <div className="hero-content">
           <h1>Добро пожаловать в BilimAll</h1>
           <p>
-            Курсы и материалы для педагогов дошкольного образования — в спокойном темпе и в удобное время.
+            Все необходимые ресурсы для дошкольных педагогов в одной платформе:
+            нормативные документы, сценарии мероприятий и дополнительные материалы.
           </p>
-          <Link to="/courses" className="btn btn-primary btn-large">
-            Начать обучение
+          <Link to={coursesPath} className="btn btn-primary btn-large">
+            Перейти к курсам
           </Link>
         </div>
         <div className="hero-image" aria-hidden>
@@ -55,28 +61,55 @@ export default function HomePage() {
 
       {/* Features Section */}
       <section className="features-section">
-        <h2>Почему BilimAll?</h2>
+        <h2>Материалы для ежедневной работы педагога</h2>
         <div className="features-grid">
+          <Link to="/resources/documents" className="feature-card-link">
+            <div className="feature-card">
+              <div className="feature-icon">📘</div>
+              <h3>Нормативные документы</h3>
+              <p>Быстрый доступ к основным требованиям и регламентам для дошкольных организаций.</p>
+            </div>
+          </Link>
+          <Link to="/resources/scenarios" className="feature-card-link">
+            <div className="feature-card">
+              <div className="feature-icon">🧩</div>
+              <h3>Сценарии мероприятий</h3>
+              <p>Готовые сценарии для праздников, тематических дней и развивающих активностей.</p>
+            </div>
+          </Link>
+          <Link to="/resources/materials" className="feature-card-link">
+            <div className="feature-card">
+              <div className="feature-icon">🗂️</div>
+              <h3>Дополнительные материалы</h3>
+              <p>Карточки, шаблоны и методические наработки для занятий и планирования.</p>
+            </div>
+          </Link>
           <div className="feature-card">
-            <div className="feature-icon">📚</div>
-            <h3>500+ курсов</h3>
-            <p>Обучающие курсы на разные темы</p>
+            <div className="feature-icon">🤝</div>
+            <h3>Единая платформа</h3>
+            <p>Все ресурсы и обучение собраны в одном месте без лишнего поиска по разным сайтам.</p>
           </div>
-          <div className="feature-card">
-            <div className="feature-icon">👨‍🏫</div>
-            <h3>Опытные преподаватели</h3>
-            <p>Лучшие специалисты в своей области</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">🏆</div>
-            <h3>Сертификаты</h3>
-            <p>Получите признанные сертификаты</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">⏰</div>
-            <h3>Своя скорость</h3>
-            <p>Учитесь в удобном для вас темпе</p>
-          </div>
+        </div>
+      </section>
+
+      <section className="resources-section">
+        <h2>Главные разделы</h2>
+        <div className="resources-grid">
+          <Link to="/resources/documents" className="resource-card">
+            <h3>Нормативные документы</h3>
+            <p>Актуальные документы и памятки, которые нужны в повседневной работе педагогов.</p>
+            <span className="resource-badge">Открыть раздел</span>
+          </Link>
+          <Link to="/resources/scenarios" className="resource-card">
+            <h3>Сценарии мероприятий</h3>
+            <p>Подборка сценариев для утренников, открытых занятий и календарных праздников.</p>
+            <span className="resource-badge">Открыть раздел</span>
+          </Link>
+          <Link to="/resources/materials" className="resource-card">
+            <h3>Дополнительные материалы</h3>
+            <p>Практические файлы и шаблоны для быстрого запуска занятий с детьми.</p>
+            <span className="resource-badge">Открыть раздел</span>
+          </Link>
         </div>
       </section>
 
@@ -115,7 +148,7 @@ export default function HomePage() {
         )}
 
         <div className="view-all">
-          <Link to="/courses" className="btn btn-secondary">
+          <Link to={coursesPath} className="btn btn-secondary">
             Смотреть все курсы
           </Link>
         </div>
@@ -124,20 +157,20 @@ export default function HomePage() {
       {/* Stats Section */}
       <section className="stats-section">
         <div className="stat">
-          <h3>500,000+</h3>
-          <p>Студентов</p>
+          <h3>1 платформа</h3>
+          <p>для дошкольных педагогов</p>
         </div>
         <div className="stat">
-          <h3>1000+</h3>
-          <p>Курсов</p>
+          <h3>3 ключевых раздела</h3>
+          <p>документы, сценарии, материалы</p>
         </div>
         <div className="stat">
-          <h3>95%</h3>
-          <p>Довольны обучением</p>
+          <h3>Курсы</h3>
+          <p>как дополнительное платное обучение</p>
         </div>
         <div className="stat">
-          <h3>50+</h3>
-          <p>Стран</p>
+          <h3>24/7</h3>
+          <p>доступ к ресурсам</p>
         </div>
       </section>
     </div>

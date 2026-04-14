@@ -20,6 +20,13 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
+.formSectionHint {
+  margin: -12px 0 20px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
 .sectionTitle {
   font-size: 22px;
   font-weight: 700;
@@ -28,6 +35,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.listSection > .sectionTitle {
+  margin-bottom: 8px;
+}
+
+.listSectionHint {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.45;
 }
 
 .form {
@@ -231,11 +249,18 @@
   }
 }
 
+.courseRowWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
 .coursesList {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 600px;
+  max-height: 700px;
   overflow-y: auto;
   padding-right: 8px;
 
@@ -264,6 +289,36 @@
   font-size: 14px;
   padding: 40px 20px;
   margin: 0;
+}
+
+.resourceAdminsWrap {
+  margin-top: 28px;
+  display: grid;
+  gap: 22px;
+}
+
+.resourceAdminSection {
+  background: linear-gradient(135deg, #f8fbff 0%, #f8fafc 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.resourceItems {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.resourceItemCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
 }
 
 .courseItem {
@@ -363,6 +418,160 @@
 
 .lessonsLink:hover {
   text-decoration: underline;
+}
+
+.lessonsToggleBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #7c3aed;
+  background: white;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lessonsToggleBtn:hover {
+  background: #f5f3ff;
+}
+
+.lessonsToggleBtnActive {
+  background: #ede9fe;
+  border-color: #6d28d9;
+}
+
+.inlineLessons {
+  margin-top: 4px;
+  padding: 16px 18px 18px;
+  background: #faf5ff;
+  border: 1px dashed #c4b5fd;
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.inlineLessonsIntro {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #5b21b6;
+  line-height: 1.45;
+}
+
+.inlineMuted {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.inlineLessonForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9d5ff;
+}
+
+.inlineLessonsFormTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.inlineLessonRow2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.inlineLessonRow2 .input:first-child {
+  flex: 1;
+  min-width: 200px;
+}
+
+.inlineAddLessonBtn {
+  align-self: flex-start;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.inlineAddLessonBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inlineLessonListWrap {
+  margin-bottom: 12px;
+}
+
+.inlineLessonList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inlineLessonListItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9d5ff;
+  font-size: 13px;
+}
+
+.inlineLessonOrder {
+  font-weight: 700;
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+
+.inlineLessonTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inlineLessonDelete {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.inlineLessonDelete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inlineLessonsFooter {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #e9d5ff;
+}
+
+.lessonsLinkFull {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 .modalBackdrop {

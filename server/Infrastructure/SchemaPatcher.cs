@@ -16,6 +16,9 @@ public static class SchemaPatcher
             await EnsureCourseLessonsTableAsync(db, cancellationToken);
             await EnsureLessonCompletionsTableAsync(db, cancellationToken);
             await EnsureCourseFilesLessonIdAsync(db, cancellationToken);
+            await EnsureNormativeDocumentsTableAsync(db, cancellationToken);
+            await EnsureEventScenariosTableAsync(db, cancellationToken);
+            await EnsureAdditionalMaterialsTableAsync(db, cancellationToken);
         }
         finally
         {
@@ -95,6 +98,72 @@ public static class SchemaPatcher
             ALTER TABLE `CourseFiles`
             ADD CONSTRAINT `FK_CourseFiles_CourseLessons_LessonId`
             FOREIGN KEY (`LessonId`) REFERENCES `CourseLessons` (`Id`) ON DELETE SET NULL;
+            """,
+            cancellationToken);
+    }
+
+    private static async Task EnsureNormativeDocumentsTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var exists = await TableExistsAsync(db, "NormativeDocuments", cancellationToken);
+        if (exists)
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `NormativeDocuments` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
+                `Description` varchar(3000) CHARACTER SET utf8mb4 NOT NULL,
+                `Url` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                `CreatedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                CONSTRAINT `PK_NormativeDocuments` PRIMARY KEY (`Id`)
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+    }
+
+    private static async Task EnsureEventScenariosTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var exists = await TableExistsAsync(db, "EventScenarios", cancellationToken);
+        if (exists)
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `EventScenarios` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
+                `Description` varchar(3000) CHARACTER SET utf8mb4 NOT NULL,
+                `Url` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                `CreatedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                CONSTRAINT `PK_EventScenarios` PRIMARY KEY (`Id`)
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+    }
+
+    private static async Task EnsureAdditionalMaterialsTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var exists = await TableExistsAsync(db, "AdditionalMaterials", cancellationToken);
+        if (exists)
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `AdditionalMaterials` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
+                `Description` varchar(3000) CHARACTER SET utf8mb4 NOT NULL,
+                `Url` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                `CreatedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                CONSTRAINT `PK_AdditionalMaterials` PRIMARY KEY (`Id`)
+            ) CHARACTER SET=utf8mb4;
             """,
             cancellationToken);
     }
