@@ -89,6 +89,39 @@ const request = async (path, options = {}, query = {}) => {
   return payload;
 };
 
+/** section: "documents" | "materials" — скачивание вложения (Bearer). */
+export const downloadResourceAttachedFile = async (section, id, suggestedFilename) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('Войдите в систему, чтобы скачать файл');
+  }
+  const seg = section === 'documents' ? 'documents' : 'materials';
+  const path = `/resources/${seg}/${Number(id)}/file`;
+  const response = await fetch(buildUrl(path), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let payload = null;
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch {
+      payload = null;
+    }
+    throw new Error(parseErrorMessage(response, text, payload));
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = suggestedFilename || `file-${id}`;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const coursesAPI = {
   getAllCourses: async (filters = {}) =>
     request('/courses', { method: 'GET' }, {
@@ -218,6 +251,18 @@ export const resourcesAPI = {
         body: JSON.stringify(body),
       }),
     remove: async (id) => request(`/resources/documents/${id}`, { method: 'DELETE' }),
+
+    uploadAttachment: async (id, file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return request(`/resources/documents/${id}/file`, {
+        method: 'POST',
+        body: fd,
+      });
+    },
+
+    removeAttachment: async (id) =>
+      request(`/resources/documents/${id}/file`, { method: 'DELETE' }),
   },
   scenarios: {
     list: async () => request('/resources/scenarios'),
@@ -246,6 +291,18 @@ export const resourcesAPI = {
         body: JSON.stringify(body),
       }),
     remove: async (id) => request(`/resources/materials/${id}`, { method: 'DELETE' }),
+
+    uploadAttachment: async (id, file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return request(`/resources/materials/${id}/file`, {
+        method: 'POST',
+        body: fd,
+      });
+    },
+
+    removeAttachment: async (id) =>
+      request(`/resources/materials/${id}/file`, { method: 'DELETE' }),
   },
 };
 

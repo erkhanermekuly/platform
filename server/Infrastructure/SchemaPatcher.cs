@@ -17,8 +17,10 @@ public static class SchemaPatcher
             await EnsureLessonCompletionsTableAsync(db, cancellationToken);
             await EnsureCourseFilesLessonIdAsync(db, cancellationToken);
             await EnsureNormativeDocumentsTableAsync(db, cancellationToken);
+            await EnsureNormativeDocumentsAttachedFileColumnsAsync(db, cancellationToken);
             await EnsureEventScenariosTableAsync(db, cancellationToken);
             await EnsureAdditionalMaterialsTableAsync(db, cancellationToken);
+            await EnsureAdditionalMaterialsAttachedFileColumnsAsync(db, cancellationToken);
             await EnsureOlympiadsTablesAsync(db, cancellationToken);
         }
         finally
@@ -118,11 +120,35 @@ public static class SchemaPatcher
                 `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
                 `Description` varchar(3000) CHARACTER SET utf8mb4 NOT NULL,
                 `Url` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                `AttachedFileName` varchar(260) CHARACTER SET utf8mb4 NULL,
+                `AttachedFileRelativePath` varchar(512) CHARACTER SET utf8mb4 NULL,
                 `CreatedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
                 CONSTRAINT `PK_NormativeDocuments` PRIMARY KEY (`Id`)
             ) CHARACTER SET=utf8mb4;
             """,
             cancellationToken);
+    }
+
+    private static async Task EnsureNormativeDocumentsAttachedFileColumnsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "NormativeDocuments", cancellationToken))
+        {
+            return;
+        }
+
+        if (!await ColumnExistsAsync(db, "NormativeDocuments", "AttachedFileName", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `NormativeDocuments` ADD COLUMN `AttachedFileName` varchar(260) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "NormativeDocuments", "AttachedFileRelativePath", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `NormativeDocuments` ADD COLUMN `AttachedFileRelativePath` varchar(512) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
     }
 
     private static async Task EnsureEventScenariosTableAsync(AppDbContext db, CancellationToken cancellationToken)
@@ -162,11 +188,35 @@ public static class SchemaPatcher
                 `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
                 `Description` varchar(3000) CHARACTER SET utf8mb4 NOT NULL,
                 `Url` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                `AttachedFileName` varchar(260) CHARACTER SET utf8mb4 NULL,
+                `AttachedFileRelativePath` varchar(512) CHARACTER SET utf8mb4 NULL,
                 `CreatedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
                 CONSTRAINT `PK_AdditionalMaterials` PRIMARY KEY (`Id`)
             ) CHARACTER SET=utf8mb4;
             """,
             cancellationToken);
+    }
+
+    private static async Task EnsureAdditionalMaterialsAttachedFileColumnsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "AdditionalMaterials", cancellationToken))
+        {
+            return;
+        }
+
+        if (!await ColumnExistsAsync(db, "AdditionalMaterials", "AttachedFileName", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `AdditionalMaterials` ADD COLUMN `AttachedFileName` varchar(260) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "AdditionalMaterials", "AttachedFileRelativePath", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `AdditionalMaterials` ADD COLUMN `AttachedFileRelativePath` varchar(512) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
     }
 
     private static async Task EnsureOlympiadsTablesAsync(AppDbContext db, CancellationToken cancellationToken)

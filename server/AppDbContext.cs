@@ -133,6 +133,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .Property(x => x.CreatedAtUtc)
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+        modelBuilder.Entity<NormativeDocumentModel>()
+            .Property(x => x.AttachedFileRelativePath)
+            .HasMaxLength(512);
+
         modelBuilder.Entity<EventScenarioModel>()
             .Property(x => x.CreatedAtUtc)
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -140,6 +144,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AdditionalMaterialModel>()
             .Property(x => x.CreatedAtUtc)
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        modelBuilder.Entity<AdditionalMaterialModel>()
+            .Property(x => x.AttachedFileRelativePath)
+            .HasMaxLength(512);
 
         modelBuilder.Entity<OlympiadModel>()
             .Property(x => x.CreatedAtUtc)

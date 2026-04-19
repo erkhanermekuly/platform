@@ -17,5 +17,11 @@ public class NormativeDocumentModel
     [MaxLength(1024)]
     public string? Url { get; set; }
 
+    [MaxLength(260)]
+    public string? AttachedFileName { get; set; }
+
+    [MaxLength(512)]
+    public string? AttachedFileRelativePath { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

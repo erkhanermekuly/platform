@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import styles from './AdminPanel.module.css';
 
@@ -10,12 +10,22 @@ export default function AdminResourceManager({
   updateApi,
   deleteApi,
   emptyLabel,
+  attachmentUploadApi,
+  attachmentRemoveApi,
+  attachmentDownload,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', url: '' });
   const [editingId, setEditingId] = useState(null);
+  const [attachmentFile, setAttachmentFile] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const editingItem = useMemo(
+    () => (editingId != null ? items.find((i) => i.id === editingId) : null),
+    [items, editingId],
+  );
 
   const loadItems = async () => {
     setLoading(true);
@@ -33,6 +43,17 @@ export default function AdminResourceManager({
     loadItems();
   }, []);
 
+  const clearAttachmentInput = () => {
+    setAttachmentFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const parseCreatedId = (res) => {
+    const raw = res?.data ?? res?.Data;
+    const n = Number(raw?.id ?? raw?.Id);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+
   const addItem = async (e) => {
     e.preventDefault();
     if (!form.title.trim() || !form.description.trim()) {
@@ -41,12 +62,34 @@ export default function AdminResourceManager({
     }
     setSaving(true);
     try {
-      await createApi({
+      const res = await createApi({
         title: form.title.trim(),
         description: form.description.trim(),
         url: form.url.trim() || null,
       });
+      const newId = parseCreatedId(res);
+      if (attachmentFile && attachmentUploadApi) {
+        if (newId == null) {
+          alert(
+            'Запись создана, но сервер не вернул id для загрузки файла. Откройте «Редактировать» у записи и прикрепите файл ещё раз.',
+          );
+        } else {
+          try {
+            await attachmentUploadApi(newId, attachmentFile);
+          } catch (upErr) {
+            const msg = String(upErr?.message || '');
+            if (msg.includes('404')) {
+              alert(
+                'Файл не загружен: API вернул 404. Остановите и снова запустите backend из папки server (dotnet run), чтобы подтянулись маршруты загрузки.',
+              );
+            } else {
+              throw upErr;
+            }
+          }
+        }
+      }
       setForm({ title: '', description: '', url: '' });
+      clearAttachmentInput();
       await loadItems();
     } catch (err) {
       alert(err?.message || 'Не удалось добавить запись');
@@ -62,11 +105,13 @@ export default function AdminResourceManager({
       description: item.description || '',
       url: item.url || '',
     });
+    clearAttachmentInput();
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setForm({ title: '', description: '', url: '' });
+    clearAttachmentInput();
   };
 
   const saveEdit = async (e) => {
@@ -83,10 +128,43 @@ export default function AdminResourceManager({
         description: form.description.trim(),
         url: form.url.trim() || null,
       });
+      if (attachmentFile && attachmentUploadApi) {
+        const fid = Number(editingId);
+        if (!Number.isFinite(fid) || fid < 1) {
+          alert('Некорректный id записи. Обновите страницу.');
+        } else {
+          try {
+            await attachmentUploadApi(fid, attachmentFile);
+          } catch (upErr) {
+            const msg = String(upErr?.message || '');
+            if (msg.includes('404')) {
+              alert(
+                'Файл не загружен: API вернул 404. Перезапустите сервер из папки server (dotnet run) с обновлённым кодом.',
+              );
+            } else {
+              throw upErr;
+            }
+          }
+        }
+      }
       cancelEdit();
       await loadItems();
     } catch (err) {
       alert(err?.message || 'Не удалось обновить запись');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const stripServerAttachment = async () => {
+    if (!editingId || !attachmentRemoveApi) return;
+    if (!window.confirm('Удалить прикреплённый файл с сервера?')) return;
+    setSaving(true);
+    try {
+      await attachmentRemoveApi(editingId);
+      await loadItems();
+    } catch (err) {
+      alert(err?.message || 'Не удалось удалить файл');
     } finally {
       setSaving(false);
     }
@@ -101,6 +179,8 @@ export default function AdminResourceManager({
       alert(e?.message || 'Не удалось удалить запись');
     }
   };
+
+  const showAttachmentField = Boolean(attachmentUploadApi);
 
   return (
     <section className={styles.resourceAdminSection}>
@@ -139,6 +219,36 @@ export default function AdminResourceManager({
             placeholder="https://..."
           />
         </div>
+        {showAttachmentField ? (
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Файл PDF или Word (необязательно)</label>
+            <p className={styles.fieldHelp}>Форматы: .pdf, .doc, .docx. Можно оставить пустым.</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className={styles.fileInputNative}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                setAttachmentFile(f || null);
+              }}
+            />
+            {attachmentFile ? <p className={styles.fieldHelp}>Выбран: {attachmentFile.name}</p> : null}
+            {editingId && editingItem?.attachedFileName ? (
+              <p className={styles.fieldHelp}>
+                Сейчас на сервере: {editingItem.attachedFileName}
+                {attachmentRemoveApi ? (
+                  <>
+                    {' · '}
+                    <button type="button" className={styles.textAction} onClick={stripServerAttachment}>
+                      Удалить файл
+                    </button>
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className={styles.courseRowActions}>
           <button type="submit" className={styles.submitButton} disabled={saving}>
             {saving ? 'Сохранение…' : editingId ? 'Сохранить изменения' : 'Добавить запись'}
@@ -165,6 +275,21 @@ export default function AdminResourceManager({
                     Открыть ссылку
                   </a>
                 )}
+                {item.attachedFileName && attachmentDownload ? (
+                  <div>
+                    <button
+                      type="button"
+                      className={styles.textAction}
+                      onClick={() =>
+                        attachmentDownload(item.id, item.attachedFileName).catch((err) =>
+                          alert(err?.message || 'Не удалось скачать файл'),
+                        )
+                      }
+                    >
+                      Скачать файл ({item.attachedFileName})
+                    </button>
+                  </div>
+                ) : null}
                 <div className={styles.courseRowActions}>
                   <button type="button" onClick={() => beginEdit(item)} className={styles.textAction}>
                     Редактировать

@@ -9,8 +9,15 @@ namespace server.Controllers;
 [Route("api/resources/materials")]
 [ApiController]
 [Authorize]
-public class AdditionalMaterialsController(AppDbContext context) : ControllerBase
+public class AdditionalMaterialsController(AppDbContext context, IWebHostEnvironment env) : ControllerBase
 {
+    private static readonly HashSet<string> AllowedAttachmentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf",
+        ".doc",
+        ".docx",
+    };
+
     [HttpGet]
     public async Task<IActionResult> List()
     {
@@ -23,11 +30,31 @@ public class AdditionalMaterialsController(AppDbContext context) : ControllerBas
                 title = x.Title,
                 description = x.Description,
                 url = x.Url,
-                createdAtUtc = x.CreatedAtUtc
+                attachedFileName = x.AttachedFileName,
+                createdAtUtc = x.CreatedAtUtc,
             })
             .ToListAsync();
 
         return Ok(ApiResponse<object>.Ok(items));
+    }
+
+    [HttpGet("{id:int}/file")]
+    public async Task<IActionResult> DownloadFile(int id)
+    {
+        var item = await context.AdditionalMaterials.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        if (item is null || string.IsNullOrWhiteSpace(item.AttachedFileRelativePath))
+        {
+            return NotFound(ApiResponse.Error("Файл не найден"));
+        }
+
+        var path = GetAbsolutePath(item.AttachedFileRelativePath);
+        if (!System.IO.File.Exists(path))
+        {
+            return NotFound(ApiResponse.Error("Файл отсутствует на сервере"));
+        }
+
+        var contentType = GuessAttachmentContentType(item.AttachedFileName ?? "file");
+        return PhysicalFile(path, contentType, item.AttachedFileName ?? "download");
     }
 
     [HttpPost]
@@ -44,13 +71,77 @@ public class AdditionalMaterialsController(AppDbContext context) : ControllerBas
             Title = dto.Title.Trim(),
             Description = dto.Description.Trim(),
             Url = string.IsNullOrWhiteSpace(dto.Url) ? null : dto.Url.Trim(),
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = DateTime.UtcNow,
         };
 
         context.AdditionalMaterials.Add(item);
         await context.SaveChangesAsync();
 
-        return Ok(ApiResponse<object>.Ok(new { id = item.Id }, "Материал добавлен"));
+        return Ok(ApiResponse<CreatedResourceItemDto>.Ok(new CreatedResourceItemDto { Id = item.Id }, "Материал добавлен"));
+    }
+
+    [HttpPost("{id:int}/file")]
+    [Authorize(Roles = "admin")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(52_428_800)]
+    public async Task<IActionResult> UploadFile(int id)
+    {
+        var item = await context.AdditionalMaterials.FindAsync(id);
+        if (item is null)
+        {
+            return NotFound(ApiResponse.Error("Материал не найден"));
+        }
+
+        if (Request.Form.Files.Count == 0)
+        {
+            return BadRequest(ApiResponse.Error("Не передан файл"));
+        }
+
+        var formFile = Request.Form.Files[0];
+        if (formFile.Length <= 0)
+        {
+            return BadRequest(ApiResponse.Error("Пустой файл"));
+        }
+
+        var originalName = Path.GetFileName(formFile.FileName);
+        var ext = Path.GetExtension(originalName);
+        if (string.IsNullOrEmpty(ext) || !AllowedAttachmentExtensions.Contains(ext))
+        {
+            return BadRequest(ApiResponse.Error("Разрешены только файлы PDF, DOC или DOCX"));
+        }
+
+        await DeletePhysicalAttachmentAsync(item, saveAfter: false);
+
+        var uploadRoot = Path.Combine(env.ContentRootPath, "uploads", "resources", "materials", id.ToString());
+        Directory.CreateDirectory(uploadRoot);
+        var safeName = $"{Guid.NewGuid():N}{ext}";
+        var fullPath = Path.Combine(uploadRoot, safeName);
+        await using (var stream = System.IO.File.Create(fullPath))
+        {
+            await formFile.CopyToAsync(stream);
+        }
+
+        item.AttachedFileName = originalName;
+        item.AttachedFileRelativePath =
+            Path.Combine("uploads", "resources", "materials", id.ToString(), safeName).Replace("\\", "/");
+        await context.SaveChangesAsync();
+
+        return Ok(ApiResponse.Ok("Файл прикреплён"));
+    }
+
+    [HttpDelete("{id:int}/file")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DeleteAttachedFile(int id)
+    {
+        var item = await context.AdditionalMaterials.FindAsync(id);
+        if (item is null)
+        {
+            return NotFound(ApiResponse.Error("Материал не найден"));
+        }
+
+        await DeletePhysicalAttachmentAsync(item, saveAfter: true);
+
+        return Ok(ApiResponse.Ok("Файл удалён"));
     }
 
     [HttpDelete("{id:int}")]
@@ -63,6 +154,7 @@ public class AdditionalMaterialsController(AppDbContext context) : ControllerBas
             return NotFound(ApiResponse.Error("Материал не найден"));
         }
 
+        await DeletePhysicalAttachmentAsync(item, saveAfter: false);
         context.AdditionalMaterials.Remove(item);
         await context.SaveChangesAsync();
         return Ok(ApiResponse.Ok("Материал удалён"));
@@ -89,5 +181,41 @@ public class AdditionalMaterialsController(AppDbContext context) : ControllerBas
         await context.SaveChangesAsync();
 
         return Ok(ApiResponse.Ok("Материал обновлён"));
+    }
+
+    private string GetAbsolutePath(string relative) =>
+        Path.Combine(env.ContentRootPath, relative.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+    private async Task DeletePhysicalAttachmentAsync(AdditionalMaterialModel item, bool saveAfter)
+    {
+        if (string.IsNullOrWhiteSpace(item.AttachedFileRelativePath))
+        {
+            return;
+        }
+
+        var path = GetAbsolutePath(item.AttachedFileRelativePath);
+        if (System.IO.File.Exists(path))
+        {
+            System.IO.File.Delete(path);
+        }
+
+        item.AttachedFileRelativePath = null;
+        item.AttachedFileName = null;
+        if (saveAfter)
+        {
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static string GuessAttachmentContentType(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".pdf" => "application/pdf",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            _ => "application/octet-stream",
+        };
     }
 }

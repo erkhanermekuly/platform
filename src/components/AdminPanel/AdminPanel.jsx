@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, Upload } from 'lucide-react';
 import { AppContext } from '../../context/AppContext';
-import { coursesAPI, resourcesAPI } from '../../api/courseService';
+import { coursesAPI, downloadResourceAttachedFile, resourcesAPI } from '../../api/courseService';
 import AdminCourseLessonsInline from './AdminCourseLessonsInline';
 import AdminResourceManager from './AdminResourceManager';
 import styles from './AdminPanel.module.css';
@@ -313,6 +313,9 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
               updateApi={resourcesAPI.documents.update}
               deleteApi={resourcesAPI.documents.remove}
               emptyLabel="Пока нет документов"
+              attachmentUploadApi={resourcesAPI.documents.uploadAttachment}
+              attachmentRemoveApi={resourcesAPI.documents.removeAttachment}
+              attachmentDownload={(id, name) => downloadResourceAttachedFile('documents', id, name)}
             />
             <AdminResourceManager
               title="🧩 Передовой педагогический опыт"
@@ -331,6 +334,9 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
               updateApi={resourcesAPI.materials.update}
               deleteApi={resourcesAPI.materials.remove}
               emptyLabel="Пока нет материалов"
+              attachmentUploadApi={resourcesAPI.materials.uploadAttachment}
+              attachmentRemoveApi={resourcesAPI.materials.removeAttachment}
+              attachmentDownload={(id, name) => downloadResourceAttachedFile('materials', id, name)}
             />
           </div>
         </div>

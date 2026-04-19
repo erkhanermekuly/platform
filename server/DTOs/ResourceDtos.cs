@@ -1,6 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace server.DTOs;
+
+/// <summary>Ответ после POST создания записи каталога (id нужен для загрузки файла).</summary>
+public sealed class CreatedResourceItemDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
+}
 
 public class UpsertResourceItemDto
 {

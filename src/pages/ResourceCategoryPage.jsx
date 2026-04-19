@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { resourcesAPI } from '../api/courseService';
+import { downloadResourceAttachedFile, resourcesAPI } from '../api/courseService';
 import '../styles/pages.css';
 
 const RESOURCE_META = {
@@ -67,15 +67,17 @@ export default function ResourceCategoryPage() {
     const q = search.trim().toLowerCase();
     return items
       .filter((item) => {
-        if (filter === 'with_link') return Boolean(item.url);
-        if (filter === 'without_link') return !item.url;
+        const hasFile = Boolean(item.attachedFileName);
+        if (filter === 'with_link') return Boolean(item.url) || hasFile;
+        if (filter === 'without_link') return !item.url && !hasFile;
         return true;
       })
       .filter((item) => {
         if (!q) return true;
         return (
           String(item.title || '').toLowerCase().includes(q) ||
-          String(item.description || '').toLowerCase().includes(q)
+          String(item.description || '').toLowerCase().includes(q) ||
+          String(item.attachedFileName || '').toLowerCase().includes(q)
         );
       });
   }, [items, search, filter]);
@@ -185,6 +187,19 @@ export default function ResourceCategoryPage() {
               <a href={item.url} target="_blank" rel="noreferrer" className="btn btn-secondary">
                 Открыть источник
               </a>
+            )}
+            {item.attachedFileName && (kind === 'documents' || kind === 'materials') && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() =>
+                  downloadResourceAttachedFile(kind === 'documents' ? 'documents' : 'materials', item.id, item.attachedFileName).catch((e) =>
+                    alert(e?.message || 'Не удалось скачать файл'),
+                  )
+                }
+              >
+                Скачать файл
+              </button>
             )}
           </article>
         ))}
