@@ -19,6 +19,7 @@ public static class SchemaPatcher
             await EnsureNormativeDocumentsTableAsync(db, cancellationToken);
             await EnsureEventScenariosTableAsync(db, cancellationToken);
             await EnsureAdditionalMaterialsTableAsync(db, cancellationToken);
+            await EnsureOlympiadsTablesAsync(db, cancellationToken);
         }
         finally
         {
@@ -166,6 +167,68 @@ public static class SchemaPatcher
             ) CHARACTER SET=utf8mb4;
             """,
             cancellationToken);
+    }
+
+    private static async Task EnsureOlympiadsTablesAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "Olympiads", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                CREATE TABLE `Olympiads` (
+                    `Id` int NOT NULL AUTO_INCREMENT,
+                    `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
+                    `Description` varchar(3000) CHARACTER SET utf8mb4 NOT NULL,
+                    `Image` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                    `CreatedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                    CONSTRAINT `PK_Olympiads` PRIMARY KEY (`Id`)
+                ) CHARACTER SET=utf8mb4;
+                """,
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "OlympiadQuestions", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                CREATE TABLE `OlympiadQuestions` (
+                    `Id` int NOT NULL AUTO_INCREMENT,
+                    `OlympiadId` int NOT NULL,
+                    `Text` varchar(2000) CHARACTER SET utf8mb4 NOT NULL,
+                    `SortOrder` int NOT NULL,
+                    CONSTRAINT `PK_OlympiadQuestions` PRIMARY KEY (`Id`),
+                    CONSTRAINT `FK_OlympiadQuestions_Olympiads_OlympiadId`
+                        FOREIGN KEY (`OlympiadId`) REFERENCES `Olympiads` (`Id`) ON DELETE CASCADE
+                ) CHARACTER SET=utf8mb4;
+                """,
+                cancellationToken);
+
+            await db.Database.ExecuteSqlRawAsync(
+                "CREATE INDEX `IX_OlympiadQuestions_OlympiadId` ON `OlympiadQuestions` (`OlympiadId`);",
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "OlympiadAnswers", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                CREATE TABLE `OlympiadAnswers` (
+                    `Id` int NOT NULL AUTO_INCREMENT,
+                    `QuestionId` int NOT NULL,
+                    `Text` varchar(1000) CHARACTER SET utf8mb4 NOT NULL,
+                    `IsCorrect` tinyint(1) NOT NULL DEFAULT 0,
+                    `SortOrder` int NOT NULL,
+                    CONSTRAINT `PK_OlympiadAnswers` PRIMARY KEY (`Id`),
+                    CONSTRAINT `FK_OlympiadAnswers_OlympiadQuestions_QuestionId`
+                        FOREIGN KEY (`QuestionId`) REFERENCES `OlympiadQuestions` (`Id`) ON DELETE CASCADE
+                ) CHARACTER SET=utf8mb4;
+                """,
+                cancellationToken);
+
+            await db.Database.ExecuteSqlRawAsync(
+                "CREATE INDEX `IX_OlympiadAnswers_QuestionId` ON `OlympiadAnswers` (`QuestionId`);",
+                cancellationToken);
+        }
     }
 
     private static async Task<bool> TableExistsAsync(AppDbContext db, string tableName, CancellationToken cancellationToken)

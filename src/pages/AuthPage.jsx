@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { pathAfterAuth } from '../auth/roles';
 import AuthSocialRow from '../components/auth/AuthSocialRow';
+import AuthSwitchLink from '../components/auth/AuthSwitchLink';
 import styles from './AuthPage.module.css';
 
 export default function AuthPage() {
@@ -87,9 +88,9 @@ export default function AuthPage() {
 
           <p className={`${styles.subtitle} ${styles.subtitleLight2}`}>
             У вас нет аккаунта? Зарегистрируйтесь!
-            <Link to="/register" className={styles.ghostLink}>
+            <AuthSwitchLink to="/register" className={styles.ghostLink}>
               Регистрация
-            </Link>
+            </AuthSwitchLink>
           </p>
         </div>
       </div>

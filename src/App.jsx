@@ -10,9 +10,13 @@ import CourseDetailsPage from './pages/CourseDetailsPage'
 import MyLearningPage from './pages/MyLearningPage'
 import AuthPage from './pages/AuthPage'
 import RegisterPage from './pages/RegisterPage'
+import LogoutPage from './pages/LogoutPage'
 import PendingAccessPage from './pages/PendingAccessPage'
 import ApiCheckPage from './pages/ApiCheckPage'
 import AdminCourseLessonsPage from './pages/AdminCourseLessonsPage'
+import OlympiadsPage from './pages/OlympiadsPage'
+import OlympiadTestPage from './pages/OlympiadTestPage'
+import AdminOlympiadQuestionsPage from './pages/AdminOlympiadQuestionsPage'
 import './styles/global.css'
 import './App.css'
 
@@ -46,6 +50,19 @@ function PendingOnlyRoute({ children }) {
   }
   if (hasCourseAccess(userRole)) {
     return <Navigate to={coursesSectionPath(userRole)} replace />;
+  }
+  return children;
+}
+
+function AdminOnlyRoute({ children }) {
+  const { isAuthenticated, userRole } = useAuth();
+  const loc = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  }
+  if (userRole !== 'admin') {
+    return <Navigate to="/olympiads" replace />;
   }
   return children;
 }
@@ -107,6 +124,7 @@ function App() {
                   </PublicAuthRoute>
                 }
               />
+              <Route path="/logout" element={<LogoutPage />} />
               <Route
                 path="/pending"
                 element={
@@ -169,6 +187,30 @@ function App() {
                   <CourseAccessRoute>
                     <MyLearningPage />
                   </CourseAccessRoute>
+                }
+              />
+              <Route
+                path="/olympiads"
+                element={
+                  <AuthenticatedRoute>
+                    <OlympiadsPage />
+                  </AuthenticatedRoute>
+                }
+              />
+              <Route
+                path="/olympiads/:id"
+                element={
+                  <AuthenticatedRoute>
+                    <OlympiadTestPage />
+                  </AuthenticatedRoute>
+                }
+              />
+              <Route
+                path="/admin/olympiads/:id/questions"
+                element={
+                  <AdminOnlyRoute>
+                    <AdminOlympiadQuestionsPage />
+                  </AdminOnlyRoute>
                 }
               />
               <Route path="/api-check" element={<ApiCheckPage />} />

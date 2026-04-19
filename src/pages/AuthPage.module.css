@@ -6,6 +6,7 @@
   padding: 24px 16px;
   background: linear-gradient(160deg, #e8eef9 0%, #f0f4ff 45%, #e9ecf5 100%);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  view-transition-name: auth-page;
 }
 
 .card {
@@ -266,6 +267,77 @@
   text-align: center;
   line-height: 1.45;
   max-width: 300px;
+}
+
+:global(::view-transition-group(auth-page)) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:global(html[data-auth-transition='to-register']::view-transition-old(auth-page)) {
+  animation: auth-slide-out-left 260ms both;
+}
+
+:global(html[data-auth-transition='to-register']::view-transition-new(auth-page)) {
+  animation: auth-slide-in-right 260ms both;
+}
+
+:global(html[data-auth-transition='to-login']::view-transition-old(auth-page)) {
+  animation: auth-slide-out-right 260ms both;
+}
+
+:global(html[data-auth-transition='to-login']::view-transition-new(auth-page)) {
+  animation: auth-slide-in-left 260ms both;
+}
+
+@keyframes auth-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes auth-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes auth-slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.98);
+  }
+}
+
+@keyframes auth-slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(28px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    view-transition-name: none;
+  }
 }
 
 @media (max-width: 768px) {

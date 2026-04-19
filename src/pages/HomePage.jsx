@@ -21,10 +21,10 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
-          <h1>Добро пожаловать в BilimAll</h1>
+          <h1>Добро пожаловать в UrkerPro</h1>
           <p>
             Все необходимые ресурсы для дошкольных педагогов в одной платформе:
-            нормативные документы, сценарии мероприятий и дополнительные материалы.
+            методические материалы, передовой педагогический опыт и консультации и поддержка.
           </p>
           <Link to={coursesPath} className="btn btn-primary btn-large">
             Перейти к курсам
@@ -66,21 +66,21 @@ export default function HomePage() {
           <Link to="/resources/documents" className="feature-card-link">
             <div className="feature-card">
               <div className="feature-icon">📘</div>
-              <h3>Нормативные документы</h3>
+              <h3>Методические материалы</h3>
               <p>Быстрый доступ к основным требованиям и регламентам для дошкольных организаций.</p>
             </div>
           </Link>
           <Link to="/resources/scenarios" className="feature-card-link">
             <div className="feature-card">
               <div className="feature-icon">🧩</div>
-              <h3>Сценарии мероприятий</h3>
-              <p>Готовые сценарии для праздников, тематических дней и развивающих активностей.</p>
+              <h3>Передовой педагогический опыт</h3>
+              <p>Передовой педагогический опыт и лучшие практики в дошкольном образовании.</p>
             </div>
           </Link>
           <Link to="/resources/materials" className="feature-card-link">
             <div className="feature-card">
               <div className="feature-icon">🗂️</div>
-              <h3>Дополнительные материалы</h3>
+              <h3>Консультации и поддержка</h3>
               <p>Карточки, шаблоны и методические наработки для занятий и планирования.</p>
             </div>
           </Link>
@@ -96,17 +96,17 @@ export default function HomePage() {
         <h2>Главные разделы</h2>
         <div className="resources-grid">
           <Link to="/resources/documents" className="resource-card">
-            <h3>Нормативные документы</h3>
+            <h3>Методические материалы</h3>
             <p>Актуальные документы и памятки, которые нужны в повседневной работе педагогов.</p>
             <span className="resource-badge">Открыть раздел</span>
           </Link>
           <Link to="/resources/scenarios" className="resource-card">
-            <h3>Сценарии мероприятий</h3>
+            <h3>Передовой педагогический опыт</h3>
             <p>Подборка сценариев для утренников, открытых занятий и календарных праздников.</p>
             <span className="resource-badge">Открыть раздел</span>
           </Link>
           <Link to="/resources/materials" className="resource-card">
-            <h3>Дополнительные материалы</h3>
+            <h3>Консультации и поддержка</h3>
             <p>Практические файлы и шаблоны для быстрого запуска занятий с детьми.</p>
             <span className="resource-badge">Открыть раздел</span>
           </Link>

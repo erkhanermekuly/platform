@@ -249,6 +249,49 @@ export const resourcesAPI = {
   },
 };
 
+export const olympiadsAPI = {
+  list: async () => request('/olympiads'),
+
+  get: async (id) => request(`/olympiads/${id}`),
+
+  create: async (body) =>
+    request('/olympiads', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  update: async (id, body) =>
+    request(`/olympiads/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  remove: async (id) => request(`/olympiads/${id}`, { method: 'DELETE' }),
+
+  listQuestions: async (id) => request(`/olympiads/${id}/questions`),
+
+  createQuestion: async (id, body) =>
+    request(`/olympiads/${id}/questions`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateQuestion: async (id, questionId, body) =>
+    request(`/olympiads/${id}/questions/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  deleteQuestion: async (id, questionId) =>
+    request(`/olympiads/${id}/questions/${questionId}`, { method: 'DELETE' }),
+
+  submit: async (id, answers) =>
+    request(`/olympiads/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    }),
+};
+
 export const paymentsAPI = {
   processPayment: async (courseId, amount) =>
     request('/payments/process', {

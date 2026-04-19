@@ -29,6 +29,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<AdditionalMaterialModel> AdditionalMaterials { get; set; }
 
+    public DbSet<OlympiadModel> Olympiads { get; set; }
+
+    public DbSet<OlympiadQuestionModel> OlympiadQuestions { get; set; }
+
+    public DbSet<OlympiadAnswerModel> OlympiadAnswers { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -134,5 +140,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AdditionalMaterialModel>()
             .Property(x => x.CreatedAtUtc)
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        modelBuilder.Entity<OlympiadModel>()
+            .Property(x => x.CreatedAtUtc)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        modelBuilder.Entity<OlympiadQuestionModel>()
+            .HasOne(x => x.Olympiad)
+            .WithMany(x => x.Questions)
+            .HasForeignKey(x => x.OlympiadId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OlympiadAnswerModel>()
+            .HasOne(x => x.Question)
+            .WithMany(x => x.Answers)
+            .HasForeignKey(x => x.QuestionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

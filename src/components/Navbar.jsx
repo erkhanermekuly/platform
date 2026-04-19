@@ -72,6 +72,13 @@ export default function Navbar() {
                   Мое обучение
                 </Link>
               )}
+              <Link
+                to="/olympiads"
+                className={`nav-link ${location.pathname.startsWith('/olympiads') ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Олимпиады
+              </Link>
             </>
           )}
           {isAuthenticated && !canCourses && (

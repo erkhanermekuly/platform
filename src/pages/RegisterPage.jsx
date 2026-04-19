@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { pathAfterAuth } from '../auth/roles';
 import AuthSocialRow from '../components/auth/AuthSocialRow';
+import AuthSwitchLink from '../components/auth/AuthSwitchLink';
 import styles from './AuthPage.module.css';
 
 export default function RegisterPage() {
@@ -54,9 +55,9 @@ export default function RegisterPage() {
           <p className={`${styles.subtitle} ${styles.subtitleLight}`}>
             Войдите под своим email и паролем — система проверит учётную запись в базе
           </p>
-          <Link to="/login" className={styles.ghostLink}>
+          <AuthSwitchLink to="/login" className={styles.ghostLink}>
             Войти
-          </Link>
+          </AuthSwitchLink>
         </div>
         <div className={`${styles.panel} ${styles.panelLight}`}>
           <h1 className={styles.title}>Регистрация</h1>

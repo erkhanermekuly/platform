@@ -3,14 +3,43 @@ import { authAPI } from '../api/courseService';
 
 const AuthContext = createContext();
 
+// Ключ для хранения идентификатора запуска проекта.
+// При каждом старте Vite (и сборке) в код инжектится новый __BUILD_ID__.
+// Если сохранённый в localStorage ID не совпадает с текущим — значит проект
+// был перезапущен, и пользователя нужно разлогинить.
+const BUILD_ID_KEY = 'app_build_id';
+const CURRENT_BUILD_ID =
+  typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev';
+
+function ensureFreshBuild() {
+  try {
+    const storedId = localStorage.getItem(BUILD_ID_KEY);
+    if (storedId !== CURRENT_BUILD_ID) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.setItem(BUILD_ID_KEY, CURRENT_BUILD_ID);
+      return true;
+    }
+  } catch {
+    // localStorage может быть недоступен — игнорируем
+  }
+  return false;
+}
+
+// Выполняем проверку как можно раньше, до инициализации состояния провайдера.
+const BUILD_CHANGED = ensureFreshBuild();
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
+    if (BUILD_CHANGED) return null;
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() =>
+    BUILD_CHANGED ? null : localStorage.getItem('token')
+  );
 
   const login = useCallback(async (email, password) => {
     setLoading(true);

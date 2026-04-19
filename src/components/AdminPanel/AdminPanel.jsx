@@ -306,7 +306,7 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
 
           <div className={styles.resourceAdminsWrap}>
             <AdminResourceManager
-              title="📘 Нормативные документы"
+              title="📘 Методические материалы"
               subtitle="Этот раздел видят все пользователи на отдельной странице."
               listApi={resourcesAPI.documents.list}
               createApi={resourcesAPI.documents.create}
@@ -315,7 +315,7 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
               emptyLabel="Пока нет документов"
             />
             <AdminResourceManager
-              title="🧩 Сценарии мероприятий"
+              title="🧩 Передовой педагогический опыт"
               subtitle="Добавляйте сценарии отдельно от документов и материалов."
               listApi={resourcesAPI.scenarios.list}
               createApi={resourcesAPI.scenarios.create}
@@ -324,7 +324,7 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
               emptyLabel="Пока нет сценариев"
             />
             <AdminResourceManager
-              title="🗂️ Дополнительные материалы"
+              title="🗂️ Консультации и поддержка"
               subtitle="Отдельная таблица и отдельный каталог материалов."
               listApi={resourcesAPI.materials.list}
               createApi={resourcesAPI.materials.create}
