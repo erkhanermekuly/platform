@@ -19,6 +19,9 @@ export default function Navbar() {
 
   const coursesPath = canCourses ? coursesSectionPath(userRole) : '/pending';
 
+  const isAdmin = userRole === 'admin';
+  const displayName = isAdmin ? 'Админ' : user?.name || '';
+
   if (location.pathname === '/login' || location.pathname === '/register') {
     return null;
   }
@@ -95,9 +98,11 @@ export default function Navbar() {
         {/* User Section */}
         <div className="navbar-user">
           {isAuthenticated ? (
-            <div className="user-menu">
-              <img src={user?.avatar} alt={user?.name} className="user-avatar" />
-              <span className="user-name">{user?.name}</span>
+            <div className={`user-menu${isAdmin ? ' user-menu--admin' : ''}`}>
+              {!isAdmin && user?.avatar ? (
+                <img src={user.avatar} alt={displayName} className="user-avatar" />
+              ) : null}
+              <span className="user-name">{displayName}</span>
               <div className="dropdown-menu">
                 <Link to={canCourses ? '/home' : '/pending'} className="dropdown-item">
                   Профиль

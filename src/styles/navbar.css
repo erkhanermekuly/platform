@@ -207,6 +207,10 @@
   display: inline;
 }
 
+.user-menu--admin .user-name {
+  display: inline;
+}
+
 /* Dropdown Menu */
 .dropdown-menu {
   position: absolute;
@@ -331,6 +335,10 @@
 
   .user-name {
     display: none;
+  }
+
+  .user-menu--admin .user-name {
+    display: inline;
   }
 
   .dropdown-menu {
