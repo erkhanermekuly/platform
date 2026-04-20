@@ -1,23 +1,25 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { hasCourseAccess, coursesSectionPath } from '../auth/roles';
+import { coursesSectionPath } from '../auth/roles';
 import '../styles/navbar.css';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout, userRole } = useAuth();
-  const canCourses = hasCourseAccess(userRole);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     setIsMenuOpen(false);
+    navigate('/login', { replace: true });
   };
 
   const isActive = (path) => location.pathname === path;
 
-  const coursesPath = canCourses ? coursesSectionPath(userRole) : '/pending';
+  const coursesPath = coursesSectionPath(userRole);
 
   const isAdmin = userRole === 'admin';
   const displayName = isAdmin ? 'Админ' : user?.name || '';
@@ -66,15 +68,13 @@ export default function Navbar() {
               >
                 Курсы
               </Link>
-              {canCourses && (
-                <Link
-                  to="/my-learning"
-                  className={`nav-link ${isActive('/my-learning') ? 'active' : ''}`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Мое обучение
-                </Link>
-              )}
+              <Link
+                to="/my-learning"
+                className={`nav-link ${isActive('/my-learning') ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Мое обучение
+              </Link>
               <Link
                 to="/olympiads"
                 className={`nav-link ${location.pathname.startsWith('/olympiads') ? 'active' : ''}`}
@@ -82,42 +82,46 @@ export default function Navbar() {
               >
                 Олимпиады
               </Link>
+              <Link
+                to="/profile"
+                className={`nav-link ${location.pathname.startsWith('/profile') ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Профиль
+              </Link>
             </>
-          )}
-          {isAuthenticated && !canCourses && (
-            <Link
-              to="/pending"
-              className={`nav-link ${isActive('/pending') ? 'active' : ''}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Статус доступа
-            </Link>
           )}
         </div>
 
         {/* User Section */}
         <div className="navbar-user">
           {isAuthenticated ? (
-            <div className={`user-menu${isAdmin ? ' user-menu--admin' : ''}`}>
-              {!isAdmin && user?.avatar ? (
-                <img src={user.avatar} alt={displayName} className="user-avatar" />
-              ) : null}
-              <span className="user-name">{displayName}</span>
-              <div className="dropdown-menu">
-                <Link to={canCourses ? '/home' : '/pending'} className="dropdown-item">
-                  Профиль
-                </Link>
-                <Link to={canCourses ? '/home' : '/pending'} className="dropdown-item">
-                  Настройки
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="dropdown-item logout"
-                >
-                  Выход
-                </button>
+            <>
+              <div className={`user-menu${isAdmin ? ' user-menu--admin' : ''}`}>
+                <span className="user-name">{displayName}</span>
+                <div className="dropdown-menu">
+                  <Link to="/profile" className="dropdown-item">
+                    Профиль
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="dropdown-item logout"
+                  >
+                    Выход
+                  </button>
+                </div>
               </div>
-            </div>
+              <button
+                type="button"
+                className="navbar-logout"
+                onClick={handleLogout}
+                title="Выйти из аккаунта"
+                aria-label="Выйти из аккаунта"
+              >
+                <LogOut size={22} strokeWidth={2} aria-hidden />
+              </button>
+            </>
           ) : (
             <div className="auth-buttons">
               <Link to="/login" className="btn btn-secondary">

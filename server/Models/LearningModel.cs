@@ -15,4 +15,7 @@ public class LearningModel
     public int Progress { get; set; }
 
     public DateTime LastAccessed { get; set; }
+
+    /// <summary>Окончание доступа к урокам; null — без ограничения срока.</summary>
+    public DateTime? AccessExpiresAtUtc { get; set; }
 }

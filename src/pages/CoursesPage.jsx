@@ -95,7 +95,7 @@ export default function CoursesPage() {
     );
   }
 
-  // Teacher View
+  // Каталог для студентов и прочих ролей (не админ)
   if (coursesLoading) {
     return (
       <div style={{ minHeight: '100vh', padding: 40, textAlign: 'center' }}>

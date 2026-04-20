@@ -148,12 +148,20 @@ export default function AdminOlympiadQuestionsPage() {
       }}
     >
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
-        <Link
-          to="/olympiads"
-          style={{ color: '#2b52b5', textDecoration: 'none', fontWeight: 600 }}
-        >
-          ← К списку олимпиад
-        </Link>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+          <Link
+            to="/olympiads"
+            style={{ color: '#2b52b5', textDecoration: 'none', fontWeight: 600 }}
+          >
+            ← К списку олимпиад
+          </Link>
+          <Link
+            to={`/admin/olympiads/${id}/results`}
+            style={{ color: '#2b52b5', textDecoration: 'none', fontWeight: 600 }}
+          >
+            Результаты и рейтинг →
+          </Link>
+        </div>
 
         <h1 style={{ margin: '14px 0 6px', color: '#0f2744' }}>
           Вопросы — {olympiad?.title ?? ''}

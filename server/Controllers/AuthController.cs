@@ -27,7 +27,7 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
             return BadRequest(ApiResponse.Error("Пользователь с таким email уже существует"));
         }
 
-        // Публичная регистрация — только студент; роли admin/teacher задаёт администратор
+        // Публичная регистрация — только студент; роли admin/teacher задаёт администратор (курсы на сервере — только admin).
         var account = new AccountModel
         {
             Name = dto.Name,
@@ -49,8 +49,7 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
                 id = account.Id,
                 name = account.Name,
                 email = account.Email,
-                role = account.Role,
-                avatar = account.Avatar
+                role = account.Role
             }
         }));
     }
@@ -71,6 +70,11 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
             return Unauthorized(ApiResponse.Error("Неверный email или пароль"));
         }
 
+        if (account.IsBlocked)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.Error("Учётная запись заблокирована. Обратитесь к администратору."));
+        }
+
         var token = GenerateJwtToken(account);
 
         return Ok(ApiResponse<object>.Ok(new
@@ -81,8 +85,7 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
                 id = account.Id,
                 name = account.Name,
                 email = account.Email,
-                role = account.Role,
-                avatar = account.Avatar
+                role = account.Role
             }
         }));
     }
@@ -118,7 +121,7 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
             name = account.Name,
             email = account.Email,
             role = account.Role,
-            avatar = account.Avatar
+            isBlocked = account.IsBlocked,
         }));
     }
 

@@ -1,14 +1,36 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { olympiadsAPI } from '../api/courseService';
+import { useAuth } from '../context/AuthContext';
+import '../styles/olympiads.css';
+
+function formatDate(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export default function OlympiadTestPage() {
   const { id } = useParams();
+  const { userRole } = useAuth();
+  const isAdmin = userRole === 'admin';
+
+  const [locked, setLocked] = useState(false);
+  const [olympiadMeta, setOlympiadMeta] = useState(null);
+  const [lockedAttempt, setLockedAttempt] = useState(null);
+
   const [data, setData] = useState(null);
+  const [rating, setRating] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // { [questionId]: Set<answerId> }
   const [selected, setSelected] = useState({});
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -18,12 +40,35 @@ export default function OlympiadTestPage() {
     setError(null);
     setResult(null);
     setSelected({});
+    setLocked(false);
+    setOlympiadMeta(null);
+    setLockedAttempt(null);
+    setData(null);
     try {
       const res = await olympiadsAPI.get(id);
-      if (res?.success && res.data) {
-        setData(res.data);
-      } else {
+      if (!res?.success || !res.data) {
         setError(res?.message || 'Не удалось загрузить олимпиаду');
+        return;
+      }
+      const payload = res.data;
+      if (payload.locked && payload.olympiad && payload.attempt) {
+        setLocked(true);
+        setOlympiadMeta(payload.olympiad);
+        setLockedAttempt(payload.attempt);
+        try {
+          const rat = await olympiadsAPI.getRating(id, 50);
+          if (rat?.success && Array.isArray(rat.data)) setRating(rat.data);
+        } catch {
+          setRating([]);
+        }
+        return;
+      }
+      setData(payload);
+      try {
+        const rat = await olympiadsAPI.getRating(id, 50);
+        if (rat?.success && Array.isArray(rat.data)) setRating(rat.data);
+      } catch {
+        setRating([]);
       }
     } catch (e) {
       setError(e?.message || 'Ошибка сети');
@@ -36,26 +81,32 @@ export default function OlympiadTestPage() {
     load();
   }, [load]);
 
+  const answeredCount = useMemo(() => {
+    if (!data?.questions?.length) return 0;
+    return data.questions.filter((q) => (selected[q.id]?.size ?? 0) > 0).length;
+  }, [data, selected]);
+
+  const progressPct = useMemo(() => {
+    if (!data?.questions?.length) return 0;
+    return Math.round((answeredCount / data.questions.length) * 100);
+  }, [data, answeredCount]);
+
   const toggleAnswer = (questionId, answerId) => {
+    if (result) return;
     setSelected((prev) => {
       const current = new Set(prev[questionId] || []);
-      if (current.has(answerId)) {
-        current.delete(answerId);
-      } else {
-        current.add(answerId);
-      }
+      if (current.has(answerId)) current.delete(answerId);
+      else current.add(answerId);
       return { ...prev, [questionId]: current };
     });
   };
 
   const handleSubmit = async () => {
     if (!data?.questions?.length) return;
-
     const answers = data.questions.map((q) => ({
       questionId: q.id,
       selectedAnswerIds: Array.from(selected[q.id] || []),
     }));
-
     setSubmitting(true);
     try {
       const res = await olympiadsAPI.submit(id, answers);
@@ -72,168 +123,240 @@ export default function OlympiadTestPage() {
     }
   };
 
+  const resetLocalPreview = () => {
+    setResult(null);
+    setSelected({});
+  };
+
   if (loading) {
-    return <StatusLayout>Загрузка теста…</StatusLayout>;
+    return (
+      <div className="olym-root">
+        <div className="olym-shell">
+          <p className="olym-empty">Загрузка…</p>
+        </div>
+      </div>
+    );
   }
+
   if (error) {
-    return <StatusLayout error>Ошибка: {error}</StatusLayout>;
+    return (
+      <div className="olym-root">
+        <div className="olym-shell">
+          <p className="olym-error">{error}</p>
+          <Link className="olym-back" to="/olympiads">
+            ← Назад
+          </Link>
+        </div>
+      </div>
+    );
   }
+
+  if (locked && olympiadMeta && lockedAttempt) {
+    const pass = lockedAttempt.scorePercent >= 60;
+    return (
+      <div className="olym-root">
+        <div className="olym-shell">
+          <Link className="olym-back" to="/olympiads">
+            ← К списку олимпиад
+          </Link>
+
+          <header className="olym-hero">
+            <div className="olym-hero-inner">
+              <div className="olym-kicker">Олимпиада завершена</div>
+              <h1 className="olym-title">{olympiadMeta.title}</h1>
+              <p className="olym-desc">{olympiadMeta.description}</p>
+              <div className="olym-hero-meta">
+                <span className="olym-pill olymp-pill--accent">Повтор недоступен</span>
+                <span className={`olym-pill ${pass ? 'olym-pill--success' : 'olym-pill--muted'}`}>
+                  {pass ? 'Зачёт по порогу 60%' : 'Ниже порога 60%'}
+                </span>
+              </div>
+            </div>
+          </header>
+
+          <div className={`olym-result-panel ${pass ? 'olym-result-panel--pass' : 'olym-result-panel--fail'}`}>
+            <div className="olym-kicker">Ваш результат</div>
+            <div className="olym-result-stats">
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">{lockedAttempt.correctCount}</div>
+                <div className="olym-stat-lbl">Верных ответов</div>
+              </div>
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">{lockedAttempt.totalQuestions}</div>
+                <div className="olym-stat-lbl">Всего вопросов</div>
+              </div>
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">{lockedAttempt.scorePercent}%</div>
+                <div className="olym-stat-lbl">База</div>
+              </div>
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">
+                  {lockedAttempt.bonusPoints > 0 ? `+${lockedAttempt.bonusPoints}` : lockedAttempt.bonusPoints}
+                </div>
+                <div className="olym-stat-lbl">Бонус</div>
+              </div>
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">{lockedAttempt.ratingScore}%</div>
+                <div className="olym-stat-lbl">Итог в рейтинге</div>
+              </div>
+            </div>
+            <p className="olym-desc" style={{ marginTop: 16 }}>
+              Сдано: {formatDate(lockedAttempt.submittedAtUtc)}
+            </p>
+          </div>
+
+          <section className="olym-rating">
+            <h2 className="olym-rating-title">Рейтинг олимпиады</h2>
+            <p className="olym-rating-sub">Топ участников по итоговому баллу (учитываются бонусы администратора).</p>
+            {rating.length === 0 ? (
+              <p className="olym-empty">Пока нет других зачётных попыток в рейтинге.</p>
+            ) : (
+              <div className="olym-table-wrap">
+                <table className="olym-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Участник</th>
+                      <th>Итог</th>
+                      <th>База</th>
+                      <th>Бонус</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rating.map((row) => (
+                      <tr key={`${row.accountId}-${row.rank}`}>
+                        <td className="olym-rank">{row.rank}</td>
+                        <td>{row.name}</td>
+                        <td>
+                          <strong>{row.ratingScore}%</strong>
+                        </td>
+                        <td>{row.scorePercent}%</td>
+                        <td>{row.bonusPoints > 0 ? `+${row.bonusPoints}` : row.bonusPoints}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) return null;
 
   const correctById = result
-    ? Object.fromEntries(
-        result.results.map((r) => [r.questionId, new Set(r.correctAnswerIds)])
-      )
+    ? Object.fromEntries(result.results.map((r) => [r.questionId, new Set(r.correctAnswerIds)]))
     : {};
   const isCorrectByQuestion = result
     ? Object.fromEntries(result.results.map((r) => [r.questionId, r.isCorrect]))
     : {};
 
+  const passNow = result && result.scorePercent >= 60;
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background:
-          'linear-gradient(160deg, #e8eef9 0%, #f0f4ff 45%, #e9ecf5 100%)',
-        padding: '40px 20px',
-      }}
-    >
-      <div style={{ maxWidth: 820, margin: '0 auto' }}>
-        <Link
-          to="/olympiads"
-          style={{ color: '#2b52b5', textDecoration: 'none', fontWeight: 600 }}
-        >
+    <div className="olym-root">
+      <div className="olym-shell">
+        <Link className="olym-back" to="/olympiads">
           ← К списку олимпиад
         </Link>
 
-        <h1
-          style={{
-            fontSize: 30,
-            fontWeight: 700,
-            color: '#1f2937',
-            margin: '14px 0 6px',
-          }}
-        >
-          {data.title}
-        </h1>
-        <p style={{ color: '#6b7280', marginTop: 0 }}>{data.description}</p>
-
-        {result && (
-          <div
-            style={{
-              background:
-                result.scorePercent >= 60 ? '#ecfdf5' : '#fef2f2',
-              border: `1px solid ${
-                result.scorePercent >= 60 ? '#a7f3d0' : '#fecaca'
-              }`,
-              borderRadius: 16,
-              padding: 20,
-              marginTop: 20,
-            }}
-          >
-            <h3
-              style={{
-                margin: 0,
-                color: result.scorePercent >= 60 ? '#065f46' : '#991b1b',
-              }}
-            >
-              Результат: {result.correctCount} / {result.totalQuestions} (
-              {result.scorePercent}%)
-            </h3>
-            <button
-              onClick={load}
-              style={{
-                marginTop: 12,
-                padding: '8px 14px',
-                borderRadius: 10,
-                border: 'none',
-                background: '#2b52b5',
-                color: '#fff',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Пройти ещё раз
-            </button>
+        {isAdmin && (
+          <div className="olym-banner">
+            Режим администратора: ответы проверяются, но попытка <strong>не сохраняется</strong> в рейтинг и не
+            блокирует прохождение.
           </div>
         )}
 
-        {data.questions.length === 0 && (
-          <p style={{ color: '#6b7280', marginTop: 30 }}>
-            В этой олимпиаде пока нет вопросов.
-          </p>
+        <header className="olym-hero">
+          <div className="olym-hero-inner">
+            <div className="olym-kicker">Олимпиада</div>
+            <h1 className="olym-title">{data.title}</h1>
+            <p className="olym-desc">{data.description}</p>
+            <div className="olym-hero-meta">
+              <span className="olym-pill olymp-pill--muted">Вопросов: {data.questions.length}</span>
+              <span className="olym-pill olymp-pill--accent">Одна официальная попытка</span>
+            </div>
+          </div>
+        </header>
+
+        {result?.previewOnly ? (
+          <div className="olym-banner">Предпросмотр: результат не записан в базу участников.</div>
+        ) : null}
+
+        {result && !result.previewOnly ? (
+          <div className={`olym-result-panel ${passNow ? 'olym-result-panel--pass' : 'olym-result-panel--fail'}`}>
+            <div className="olym-kicker">Итог попытки</div>
+            <div className="olym-result-stats">
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">
+                  {result.correctCount}/{result.totalQuestions}
+                </div>
+                <div className="olym-stat-lbl">Верно</div>
+              </div>
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">{result.scorePercent}%</div>
+                <div className="olym-stat-lbl">База</div>
+              </div>
+              <div className="olym-stat-box">
+                <div className="olym-stat-val">{result.ratingScore ?? result.scorePercent}%</div>
+                <div className="olym-stat-lbl">В рейтинге</div>
+              </div>
+            </div>
+            <p className="olym-desc" style={{ marginTop: 14 }}>
+              Попытка сохранена. Повторное прохождение этой олимпиады недоступно. Итоговый балл в рейтинге может быть
+              скорректирован администратором (бонусы).
+            </p>
+          </div>
+        ) : null}
+
+        {data.questions.length > 0 && !result && (
+          <div className="olym-progress-wrap">
+            <div className="olym-progress-label">
+              <span>Прогресс ответов</span>
+              <span>
+                {answeredCount} / {data.questions.length}
+              </span>
+            </div>
+            <div className="olym-progress-track">
+              <div className="olym-progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
         )}
 
-        <div style={{ marginTop: 24, display: 'grid', gap: 16 }}>
+        {data.questions.length === 0 && <p className="olym-empty">В этой олимпиаде пока нет вопросов.</p>}
+
+        <div>
           {data.questions.map((q, idx) => {
-            const questionResultKnown = result !== null;
-            const questionCorrect = isCorrectByQuestion[q.id];
+            const known = result !== null;
+            const ok = isCorrectByQuestion[q.id];
+            const cardClass = known ? (ok ? 'olym-q-card olymp-q-card--ok' : 'olym-q-card olymp-q-card--bad') : 'olym-q-card';
             return (
-              <div
-                key={q.id}
-                style={{
-                  background: '#fff',
-                  borderRadius: 16,
-                  padding: 20,
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
-                  borderLeft: questionResultKnown
-                    ? `4px solid ${questionCorrect ? '#10b981' : '#ef4444'}`
-                    : '4px solid transparent',
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 600,
-                    color: '#0f2744',
-                    fontSize: 16,
-                    marginBottom: 12,
-                  }}
-                >
-                  {idx + 1}. {q.text}
+              <div key={q.id} className={cardClass}>
+                <div className="olym-q-num">
+                  Вопрос {idx + 1} из {data.questions.length}
                 </div>
-                <div style={{ display: 'grid', gap: 8 }}>
+                <h2 className="olym-q-text">{q.text}</h2>
+                <div>
                   {q.answers.map((a) => {
                     const isSelected = selected[q.id]?.has(a.id) ?? false;
-                    const isCorrectAnswer =
-                      result && correctById[q.id]?.has(a.id);
+                    const isCorrectAnswer = result && correctById[q.id]?.has(a.id);
                     const showCorrect = result && isCorrectAnswer;
-                    const showWrongSelected =
-                      result && isSelected && !isCorrectAnswer;
-
-                    let bg = '#f8fafc';
-                    let borderColor = '#e5e7eb';
-                    if (showCorrect) {
-                      bg = '#ecfdf5';
-                      borderColor = '#10b981';
-                    } else if (showWrongSelected) {
-                      bg = '#fef2f2';
-                      borderColor = '#ef4444';
-                    } else if (isSelected) {
-                      bg = '#eef2ff';
-                      borderColor = '#2b52b5';
-                    }
-
+                    const showWrongSelected = result && isSelected && !isCorrectAnswer;
+                    let cls = 'olym-answer';
+                    if (showCorrect) cls += ' olymp-answer--correct';
+                    else if (showWrongSelected) cls += ' olymp-answer--wrong';
+                    else if (isSelected) cls += ' olymp-answer--sel';
                     return (
-                      <label
-                        key={a.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          padding: '10px 12px',
-                          borderRadius: 10,
-                          background: bg,
-                          border: `1px solid ${borderColor}`,
-                          cursor: result ? 'default' : 'pointer',
-                        }}
-                      >
+                      <label key={a.id} className={cls}>
                         <input
                           type="checkbox"
                           checked={isSelected}
                           disabled={!!result}
                           onChange={() => toggleAnswer(q.id, a.id)}
                         />
-                        <span style={{ color: '#1f2937' }}>{a.text}</span>
+                        <span>{a.text}</span>
                       </label>
                     );
                   })}
@@ -244,45 +367,60 @@ export default function OlympiadTestPage() {
         </div>
 
         {data.questions.length > 0 && !result && (
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            style={{
-              marginTop: 24,
-              width: '100%',
-              padding: '14px 18px',
-              borderRadius: 12,
-              border: 'none',
-              background:
-                'linear-gradient(180deg, #4e7ee8 0%, #2b52b5 100%)',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 16,
-              cursor: 'pointer',
-              opacity: submitting ? 0.7 : 1,
-            }}
-          >
-            {submitting ? 'Проверяем…' : 'Завершить и проверить'}
+          <button type="button" className="olym-btn olymp-btn--primary" style={{ width: '100%', marginTop: 8 }} onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Проверяем…' : 'Завершить и отправить'}
           </button>
         )}
-      </div>
-    </div>
-  );
-}
 
-function StatusLayout({ children, error }) {
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-        color: error ? '#b91c1c' : '#6b7280',
-      }}
-    >
-      {children}
+        {isAdmin && result ? (
+          <button type="button" className="olym-btn olymp-btn--ghost" style={{ marginTop: 14 }} onClick={resetLocalPreview}>
+            Сбросить просмотр (ещё раз проверить ответы)
+          </button>
+        ) : null}
+
+        <section className="olym-rating">
+          <h2 className="olym-rating-title">Рейтинг</h2>
+          <p className="olym-rating-sub">Актуальная таблица лидеров по этой олимпиаде.</p>
+          {rating.length === 0 ? (
+            <p className="olym-empty">Пока нет зачётных попыток.</p>
+          ) : (
+            <div className="olym-table-wrap">
+              <table className="olym-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Участник</th>
+                    <th>Итог</th>
+                    <th>База</th>
+                    <th>Бонус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rating.map((row) => (
+                    <tr key={`${row.accountId}-${row.rank}`}>
+                      <td className="olym-rank">{row.rank}</td>
+                      <td>{row.name}</td>
+                      <td>
+                        <strong>{row.ratingScore}%</strong>
+                      </td>
+                      <td>{row.scorePercent}%</td>
+                      <td>{row.bonusPoints > 0 ? `+${row.bonusPoints}` : row.bonusPoints}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {isAdmin ? (
+          <div style={{ marginTop: 24 }}>
+            <Link className="olym-btn olymp-btn--ghost" to={`/admin/olympiads/${id}/results`}>
+              Управление результатами
+            </Link>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

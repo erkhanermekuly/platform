@@ -10,6 +10,8 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.14" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <PackageReference Include="Sentry.AspNetCore" Version="4.12.1" />
+    <PackageReference Include="Stripe.net" Version="47.1.0" />
   </ItemGroup>
 
 </Project>

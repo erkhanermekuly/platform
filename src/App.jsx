@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AppProvider } from './context/AppContext'
-import { hasCourseAccess, coursesSectionPath } from './auth/roles'
+import { hasCourseAccess } from './auth/roles'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import ResourceCategoryPage from './pages/ResourceCategoryPage'
@@ -11,12 +11,13 @@ import MyLearningPage from './pages/MyLearningPage'
 import AuthPage from './pages/AuthPage'
 import RegisterPage from './pages/RegisterPage'
 import LogoutPage from './pages/LogoutPage'
-import PendingAccessPage from './pages/PendingAccessPage'
 import ApiCheckPage from './pages/ApiCheckPage'
 import AdminCourseLessonsPage from './pages/AdminCourseLessonsPage'
 import OlympiadsPage from './pages/OlympiadsPage'
 import OlympiadTestPage from './pages/OlympiadTestPage'
 import AdminOlympiadQuestionsPage from './pages/AdminOlympiadQuestionsPage'
+import AdminOlympiadResultsPage from './pages/AdminOlympiadResultsPage'
+import Profile from './pages/Profile/Profile'
 import './styles/global.css'
 import './App.css'
 
@@ -28,7 +29,7 @@ function CourseAccessRoute({ children }) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   if (!hasCourseAccess(userRole)) {
-    return <Navigate to="/pending" replace />;
+    return <Navigate to="/home" replace />;
   }
   return children;
 }
@@ -38,18 +39,6 @@ function AuthenticatedRoute({ children }) {
   const location = useLocation();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
-  return children;
-}
-
-function PendingOnlyRoute({ children }) {
-  const { isAuthenticated, userRole } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  if (hasCourseAccess(userRole)) {
-    return <Navigate to={coursesSectionPath(userRole)} replace />;
   }
   return children;
 }
@@ -75,7 +64,7 @@ function AdminCoursesRoute({ children }) {
     return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   }
   if (!hasCourseAccess(userRole)) {
-    return <Navigate to="/pending" replace />;
+    return <Navigate to="/home" replace />;
   }
   if (userRole !== 'admin') {
     return <Navigate to="/courses" replace />;
@@ -92,6 +81,15 @@ function PublicAuthRoute({ children }) {
   return children;
 }
 
+/** Стартовая точка приложения: сначала экран входа, после входа — главная. */
+function RootRedirect() {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  }
+  return <Navigate to="/login" replace />;
+}
+
 function App() {
   return (
     <Router>
@@ -100,14 +98,7 @@ function App() {
           <Navbar />
           <main>
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <AuthenticatedRoute>
-                    <Navigate to="/home" replace />
-                  </AuthenticatedRoute>
-                }
-              />
+              <Route path="/" element={<RootRedirect />} />
               <Route
                 path="/login"
                 element={
@@ -128,9 +119,9 @@ function App() {
               <Route
                 path="/pending"
                 element={
-                  <PendingOnlyRoute>
-                    <PendingAccessPage />
-                  </PendingOnlyRoute>
+                  <AuthenticatedRoute>
+                    <Navigate to="/courses" replace />
+                  </AuthenticatedRoute>
                 }
               />
               <Route
@@ -206,10 +197,26 @@ function App() {
                 }
               />
               <Route
+                path="/profile"
+                element={
+                  <AuthenticatedRoute>
+                    <Profile />
+                  </AuthenticatedRoute>
+                }
+              />
+              <Route
                 path="/admin/olympiads/:id/questions"
                 element={
                   <AdminOnlyRoute>
                     <AdminOlympiadQuestionsPage />
+                  </AdminOnlyRoute>
+                }
+              />
+              <Route
+                path="/admin/olympiads/:id/results"
+                element={
+                  <AdminOnlyRoute>
+                    <AdminOlympiadResultsPage />
                   </AdminOnlyRoute>
                 }
               />

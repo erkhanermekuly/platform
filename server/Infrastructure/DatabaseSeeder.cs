@@ -17,17 +17,9 @@ public static class DatabaseSeeder
             return;
         }
 
-        var admin = CreateAccount(
-            "Иван Иванов",
-            "ivan@example.com",
-            "admin",
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200");
+        var admin = CreateAccount("Иван Иванов", "ivan@example.com", "admin");
 
-        var teacher = CreateAccount(
-            "Мария Учитель",
-            "maria@example.com",
-            "teacher",
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200");
+        var teacher = CreateAccount("Мария Учитель", "maria@example.com", "teacher");
 
         context.Accounts.AddRange(admin, teacher);
         await context.SaveChangesAsync(cancellationToken);
@@ -180,13 +172,13 @@ public static class DatabaseSeeder
         }
     }
 
-    private static AccountModel CreateAccount(string name, string email, string role, string avatar) =>
+    private static AccountModel CreateAccount(string name, string email, string role) =>
         new()
         {
             Name = name,
             Email = email,
             Role = role,
-            Avatar = avatar,
+            Avatar = string.Empty,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
         };
 
@@ -203,7 +195,7 @@ public static class DatabaseSeeder
             VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
             Image = "https://images.unsplash.com/photo-1503672260482-696c7ebc5cb2?w=400",
             InstructorName = "Елена Петрова",
-            InstructorAvatar = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200",
+            InstructorAvatar = null,
             InstructorBio = "Методист по дошкольному образованию",
             Rating = 4.8,
             Students = 12540,
@@ -227,7 +219,7 @@ public static class DatabaseSeeder
             VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
             Image = "https://images.unsplash.com/photo-1516534775068-bb61e764cd12?w=400",
             InstructorName = "Максим Кулаков",
-            InstructorAvatar = "https://images.unsplash.com/photo-1463453091185-61582044d556?w=200",
+            InstructorAvatar = null,
             InstructorBio = "Педагог-дефектолог",
             Rating = 4.7,
             Students = 5420,
@@ -251,7 +243,7 @@ public static class DatabaseSeeder
             VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
             Image = "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400",
             InstructorName = "Ольга Иванова",
-            InstructorAvatar = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200",
+            InstructorAvatar = null,
             InstructorBio = "Преподаватель арт-терапии",
             Rating = 4.6,
             Students = 7210,

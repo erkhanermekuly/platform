@@ -22,6 +22,12 @@ public static class SchemaPatcher
             await EnsureAdditionalMaterialsTableAsync(db, cancellationToken);
             await EnsureAdditionalMaterialsAttachedFileColumnsAsync(db, cancellationToken);
             await EnsureOlympiadsTablesAsync(db, cancellationToken);
+            await EnsureOlympiadAttemptsTableAsync(db, cancellationToken);
+            await EnsureOlympiadAttemptsExtraColumnsAsync(db, cancellationToken);
+            await EnsureAccountsIsBlockedAsync(db, cancellationToken);
+            await EnsureCoursesExtendedColumnsAsync(db, cancellationToken);
+            await EnsureLearningsAccessExpiresAsync(db, cancellationToken);
+            await EnsurePaymentsExtendedColumnsAsync(db, cancellationToken);
         }
         finally
         {
@@ -277,6 +283,156 @@ public static class SchemaPatcher
 
             await db.Database.ExecuteSqlRawAsync(
                 "CREATE INDEX `IX_OlympiadAnswers_QuestionId` ON `OlympiadAnswers` (`QuestionId`);",
+                cancellationToken);
+        }
+    }
+
+    private static async Task EnsureOlympiadAttemptsTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (await TableExistsAsync(db, "OlympiadAttempts", cancellationToken))
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `OlympiadAttempts` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `AccountId` int NOT NULL,
+                `OlympiadId` int NOT NULL,
+                `TotalQuestions` int NOT NULL,
+                `CorrectCount` int NOT NULL,
+                `ScorePercent` int NOT NULL,
+                `BonusPoints` int NOT NULL DEFAULT 0,
+                `IsVoided` tinyint(1) NOT NULL DEFAULT 0,
+                `SubmittedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                CONSTRAINT `PK_OlympiadAttempts` PRIMARY KEY (`Id`),
+                CONSTRAINT `FK_OlympiadAttempts_Accounts_AccountId`
+                    FOREIGN KEY (`AccountId`) REFERENCES `Accounts` (`Id`) ON DELETE CASCADE,
+                CONSTRAINT `FK_OlympiadAttempts_Olympiads_OlympiadId`
+                    FOREIGN KEY (`OlympiadId`) REFERENCES `Olympiads` (`Id`) ON DELETE CASCADE
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX `IX_OlympiadAttempts_AccountId_OlympiadId_SubmittedAtUtc` ON `OlympiadAttempts` (`AccountId`, `OlympiadId`, `SubmittedAtUtc`);",
+            cancellationToken);
+    }
+
+    private static async Task EnsureAccountsIsBlockedAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "Accounts", cancellationToken))
+        {
+            return;
+        }
+
+        if (!await ColumnExistsAsync(db, "Accounts", "IsBlocked", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Accounts` ADD COLUMN `IsBlocked` tinyint(1) NOT NULL DEFAULT 0;",
+                cancellationToken);
+        }
+    }
+
+    private static async Task EnsureCoursesExtendedColumnsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "Courses", cancellationToken))
+        {
+            return;
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "IsPublished", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `IsPublished` tinyint(1) NOT NULL DEFAULT 1;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "CatalogSortOrder", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `CatalogSortOrder` int NOT NULL DEFAULT 0;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "FreePreviewLessonCount", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `FreePreviewLessonCount` int NOT NULL DEFAULT 0;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "AccessDurationDays", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `AccessDurationDays` int NULL;",
+                cancellationToken);
+        }
+    }
+
+    private static async Task EnsureLearningsAccessExpiresAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "Learnings", cancellationToken))
+        {
+            return;
+        }
+
+        if (!await ColumnExistsAsync(db, "Learnings", "AccessExpiresAtUtc", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Learnings` ADD COLUMN `AccessExpiresAtUtc` datetime(6) NULL;",
+                cancellationToken);
+        }
+    }
+
+    private static async Task EnsurePaymentsExtendedColumnsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "Payments", cancellationToken))
+        {
+            return;
+        }
+
+        if (!await ColumnExistsAsync(db, "Payments", "ExternalId", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Payments` ADD COLUMN `ExternalId` varchar(200) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Payments", "ReceiptUrl", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Payments` ADD COLUMN `ReceiptUrl` varchar(1024) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Payments", "MetadataJson", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Payments` ADD COLUMN `MetadataJson` longtext CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+    }
+
+    private static async Task EnsureOlympiadAttemptsExtraColumnsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "OlympiadAttempts", cancellationToken))
+        {
+            return;
+        }
+
+        if (!await ColumnExistsAsync(db, "OlympiadAttempts", "BonusPoints", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `OlympiadAttempts` ADD COLUMN `BonusPoints` int NOT NULL DEFAULT 0;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "OlympiadAttempts", "IsVoided", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `OlympiadAttempts` ADD COLUMN `IsVoided` tinyint(1) NOT NULL DEFAULT 0;",
                 cancellationToken);
         }
     }

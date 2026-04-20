@@ -19,10 +19,13 @@ public class AccountModel
     public string PasswordHash { get; set; } = string.Empty;
 
     [MaxLength(20)]
-    public string Role { get; set; } = "teacher";
+    public string Role { get; set; } = "student";
 
     [MaxLength(512)]
-    public string Avatar { get; set; } = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200";
+    public string Avatar { get; set; } = string.Empty;
+
+    /// <summary>Блокировка входа (управляется администратором).</summary>
+    public bool IsBlocked { get; set; }
 
     public ICollection<CourseModel> CreatedCourses { get; set; } = [];
 
@@ -33,4 +36,6 @@ public class AccountModel
     public ICollection<PaymentModel> Payments { get; set; } = [];
 
     public ICollection<LessonCompletionModel> LessonCompletions { get; set; } = [];
+
+    public ICollection<OlympiadAttemptModel> OlympiadAttempts { get; set; } = [];
 }

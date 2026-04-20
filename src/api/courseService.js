@@ -309,6 +309,8 @@ export const resourcesAPI = {
 export const olympiadsAPI = {
   list: async () => request('/olympiads'),
 
+  getMyResults: async () => request('/olympiads/my-results'),
+
   get: async (id) => request(`/olympiads/${id}`),
 
   create: async (body) =>
@@ -346,6 +348,20 @@ export const olympiadsAPI = {
     request(`/olympiads/${id}/submit`, {
       method: 'POST',
       body: JSON.stringify({ answers }),
+    }),
+
+  getRating: async (id, take = 50) =>
+    request(`/olympiads/${id}/rating`, { method: 'GET' }, { take }),
+
+  adminListAttempts: async (id) => request(`/olympiads/${id}/admin/attempts`),
+
+  adminVoidAttempt: async (id, attemptId) =>
+    request(`/olympiads/${id}/admin/attempts/${attemptId}/void`, { method: 'POST' }),
+
+  adminAddBonus: async (id, attemptId, points) =>
+    request(`/olympiads/${id}/admin/attempts/${attemptId}/bonus`, {
+      method: 'POST',
+      body: JSON.stringify({ points }),
     }),
 };
 

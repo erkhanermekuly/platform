@@ -95,7 +95,7 @@ export const updateCourse = async (courseId, courseData, token) => {
 };
 
 /**
- * Получить мои курсы (для учителя)
+ * Список курсов, созданных текущим пользователем (только admin).
  */
 export const fetchMyCourses = async (token) => {
   try {

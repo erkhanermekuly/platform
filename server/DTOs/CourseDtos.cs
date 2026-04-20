@@ -43,6 +43,16 @@ public class CourseUpsertDto
 
     [MaxLength(100)]
     public string? Duration { get; set; }
+
+    public bool? IsPublished { get; set; }
+
+    public int? CatalogSortOrder { get; set; }
+
+    [Range(0, 500)]
+    public int? FreePreviewLessonCount { get; set; }
+
+    [Range(1, 36500)]
+    public int? AccessDurationDays { get; set; }
 }
 
 public class UpdateProgressDto

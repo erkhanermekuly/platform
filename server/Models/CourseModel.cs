@@ -55,6 +55,18 @@ public class CourseModel
 
     public AccountModel? CreatedByAccount { get; set; }
 
+    /// <summary>В каталоге и для студентов видны только опубликованные курсы.</summary>
+    public bool IsPublished { get; set; } = true;
+
+    /// <summary>Порядок в каталоге (больше — выше в списке при прочих равных).</summary>
+    public int CatalogSortOrder { get; set; }
+
+    /// <summary>Сколько первых уроков доступно без покупки (0 — по умолчанию 1 на сервере).</summary>
+    public int FreePreviewLessonCount { get; set; }
+
+    /// <summary>Дней доступа после оплаты; null — бессрочно.</summary>
+    public int? AccessDurationDays { get; set; }
+
     public ICollection<CourseModuleModel> Modules { get; set; } = [];
 
     public ICollection<CourseLessonModel> Lessons { get; set; } = [];

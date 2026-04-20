@@ -55,3 +55,10 @@ public class OlympiadSubmissionAnswerDto
     /// </summary>
     public List<int> SelectedAnswerIds { get; set; } = new();
 }
+
+public class OlympiadBonusPointsDto
+{
+    /// <summary>Добавить к текущим бонусным баллам (может быть отрицательным).</summary>
+    [Range(-100, 100)]
+    public int Points { get; set; }
+}

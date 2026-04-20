@@ -134,7 +134,35 @@
 .navbar-user {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+}
+
+/* Всегда видимый выход (имя у не-админа скрыто до hover — иконка не даёт «застрять» в аккаунте) */
+.navbar-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.navbar-logout:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.navbar-logout:focus-visible {
+  outline: 2px solid #3b6fd8;
+  outline-offset: 2px;
 }
 
 /* Auth Buttons */
@@ -180,35 +208,15 @@
   cursor: pointer;
 }
 
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e5e7eb;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.user-avatar:hover {
-  border-color: #3b6fd8;
-  transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(59, 111, 216, 0.28);
-}
-
 .user-name {
   font-weight: 600;
   color: #1f2937;
-  display: none;
-}
-
-.user-menu:hover .user-name {
-  display: inline;
-}
-
-.user-menu--admin .user-name {
-  display: inline;
+  display: inline-block;
+  max-width: min(200px, 30vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* Dropdown Menu */
@@ -328,17 +336,8 @@
     font-size: 13px;
   }
 
-  .user-avatar {
-    width: 36px;
-    height: 36px;
-  }
-
   .user-name {
-    display: none;
-  }
-
-  .user-menu--admin .user-name {
-    display: inline;
+    max-width: 120px;
   }
 
   .dropdown-menu {
@@ -379,8 +378,4 @@
     font-size: 12px;
   }
 
-  .user-avatar {
-    width: 32px;
-    height: 32px;
-  }
 }

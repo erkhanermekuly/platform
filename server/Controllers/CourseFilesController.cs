@@ -37,7 +37,7 @@ public class CourseFilesController(AppDbContext context, IWebHostEnvironment env
         return Ok(ApiResponse<object>.Ok(files));
     }
 
-    [Authorize]
+    [Authorize(Roles = "admin")]
     [HttpPost]
     [RequestSizeLimit(100_000_000)]
     public async Task<IActionResult> UploadFiles(int courseId)

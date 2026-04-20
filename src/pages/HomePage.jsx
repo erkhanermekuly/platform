@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCourses } from '../hooks/useApi';
 import { useAuth } from '../context/AuthContext';
-import { hasCourseAccess, coursesSectionPath } from '../auth/roles';
+import { coursesSectionPath } from '../auth/roles';
 import '../styles/pages.css';
 
 export default function HomePage() {
   const { courses, loading } = useCourses();
   const { userRole } = useAuth();
   const [category, setCategory] = useState('all');
-  const canCourses = hasCourseAccess(userRole);
-  const coursesPath = canCourses ? coursesSectionPath(userRole) : '/pending';
+  const coursesPath = coursesSectionPath(userRole);
 
   const filteredCourses = category === 'all' 
     ? courses.slice(0, 3)

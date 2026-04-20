@@ -111,6 +111,9 @@ export const AppProvider = ({ children }) => {
 
   const addCourse = useCallback(
     async (courseData) => {
+      if (userRole !== 'admin') {
+        throw new Error('Создавать курсы может только администратор');
+      }
       const videoUrlStr = courseData.videoUrl?.trim?.() || '';
       const baseDto = {
         title: courseData.title,
@@ -149,7 +152,7 @@ export const AppProvider = ({ children }) => {
 
       await fetchCoursesFromApi();
     },
-    [fetchCoursesFromApi]
+    [fetchCoursesFromApi, userRole]
   );
 
   const syncPurchasedFromServer = useCallback(async () => {
@@ -183,10 +186,13 @@ export const AppProvider = ({ children }) => {
 
   const deleteCourse = useCallback(
     async (courseId) => {
+      if (userRole !== 'admin') {
+        throw new Error('Удалять курсы может только администратор');
+      }
       await coursesAPI.deleteCourse(courseId);
       dispatch({ type: 'DELETE_COURSE', payload: courseId });
     },
-    []
+    [userRole]
   );
 
   const value = {

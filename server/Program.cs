@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using server;
@@ -6,8 +7,30 @@ using server.Infrastructure;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var sentryDsn = builder.Configuration["Sentry:Dsn"];
+if (!string.IsNullOrWhiteSpace(sentryDsn))
+{
+    builder.WebHost.UseSentry();
+}
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("olympiad-submit", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 12,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -67,11 +90,14 @@ app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseRateLimiter();
+
 app.MapControllers();
 
 var initDb =
-    app.Environment.IsDevelopment()
-    || app.Configuration.GetValue<bool>("Seed:RunOnStartup");
+    !app.Environment.IsEnvironment("Testing")
+    && (app.Environment.IsDevelopment()
+        || app.Configuration.GetValue<bool>("Seed:RunOnStartup"));
 
 if (initDb)
 {
@@ -95,3 +121,5 @@ if (initDb)
 }
 
 app.Run();
+
+public partial class Program;

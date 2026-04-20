@@ -20,4 +20,6 @@ public class OlympiadModel
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public ICollection<OlympiadQuestionModel> Questions { get; set; } = [];
+
+    public ICollection<OlympiadAttemptModel> Attempts { get; set; } = [];
 }

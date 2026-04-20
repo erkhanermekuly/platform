@@ -12,6 +12,15 @@ function isYoutubeUrl(url) {
   return s.includes('youtube.com') || s.includes('youtu.be');
 }
 
+function instructorInitials(name) {
+  if (!name || typeof name !== 'string') return '—';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  const a = parts[0][0] || '';
+  const b = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (a + b).toUpperCase() || '?';
+}
+
 export default function CourseDetailsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -330,10 +339,9 @@ export default function CourseDetailsPage() {
 
             <h3>Об инструкторе</h3>
             <div className="instructor-card">
-              <img
-                src={course.instructor?.avatar || 'https://via.placeholder.com/120?text=Avatar'}
-                alt={course.instructor?.name || ''}
-              />
+              <div className="instructor-card__initials" aria-hidden>
+                {instructorInitials(course.instructor?.name)}
+              </div>
               <div>
                 <h4>{course.instructor?.name ?? '—'}</h4>
                 <p>{course.instructor?.bio ?? ''}</p>

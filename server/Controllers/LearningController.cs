@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.DTOs;
+using server.Infrastructure;
 using server.Models;
 using System.Security.Claims;
 
@@ -35,7 +36,8 @@ public class LearningController(AppDbContext context) : ControllerBase
                 progress = x.Progress,
                 lastAccessed = x.LastAccessed.ToString("yyyy-MM-dd"),
                 image = x.Course.Image,
-                instructor = x.Course.InstructorName
+                instructor = x.Course.InstructorName,
+                accessExpiresAtUtc = x.AccessExpiresAtUtc,
             })
             .ToListAsync();
 
@@ -73,12 +75,14 @@ public class LearningController(AppDbContext context) : ControllerBase
             return Ok(ApiResponse.Ok("Вы уже записаны на курс"));
         }
 
+        var now = DateTime.UtcNow;
         context.Learnings.Add(new LearningModel
         {
             AccountId = userId.Value,
             CourseId = courseId,
             Progress = 0,
-            LastAccessed = DateTime.UtcNow
+            LastAccessed = now,
+            AccessExpiresAtUtc = CourseAccessRules.ComputeAccessExpiryUtc(now, course),
         });
 
         course.Students += 1;
@@ -110,7 +114,9 @@ public class LearningController(AppDbContext context) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { progress = learning.Progress }));
     }
 
-    /// <summary>Программа курса с блокировкой уроков: N+1 доступен после просмотра N до конца.</summary>
+    /// <summary>
+    /// Программа курса: при записи — цепочка уроков; без записи на платный курс — превью первых N уроков.
+    /// </summary>
     [HttpGet("course/{courseId:int}/curriculum")]
     public async Task<IActionResult> GetCourseCurriculum(int courseId)
     {
@@ -120,13 +126,33 @@ public class LearningController(AppDbContext context) : ControllerBase
             return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
         }
 
-        var enrolled = await context.Learnings
-            .AsNoTracking()
-            .AnyAsync(x => x.AccountId == userId && x.CourseId == courseId);
-        if (!enrolled)
+        var courseRow = await context.Courses.AsNoTracking().FirstOrDefaultAsync(c => c.Id == courseId);
+        if (courseRow is null)
         {
-            return Forbid();
+            return NotFound(ApiResponse.Error("Курс не найден"));
         }
+
+        var learningRow = await context.Learnings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.AccountId == userId && x.CourseId == courseId);
+
+        var isPreviewOnly = learningRow is null;
+        if (learningRow is not null &&
+            learningRow.AccessExpiresAtUtc is DateTime exp &&
+            exp < DateTime.UtcNow)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.Error("Срок доступа к материалам курса истёк."));
+        }
+
+        if (isPreviewOnly)
+        {
+            if (courseRow.Price <= 0)
+            {
+                return Forbid();
+            }
+        }
+
+        var previewCount = courseRow.FreePreviewLessonCount > 0 ? courseRow.FreePreviewLessonCount : 1;
 
         var lessons = await context.CourseLessons
             .AsNoTracking()
@@ -162,12 +188,23 @@ public class LearningController(AppDbContext context) : ControllerBase
         {
             var lesson = lessons[i];
             var isCompleted = completedSet.Contains(lesson.Id);
-            var isUnlocked = i == 0 || completedSet.Contains(lessons[i - 1].Id);
-
+            bool isUnlocked;
             string? teaserDescription = null;
-            if (!isUnlocked)
+            if (isPreviewOnly)
             {
-                teaserDescription = "Разблокируется после просмотра предыдущего урока до конца.";
+                isUnlocked = i < previewCount;
+                if (!isUnlocked)
+                {
+                    teaserDescription = "Оформите доступ к курсу, чтобы смотреть этот урок.";
+                }
+            }
+            else
+            {
+                isUnlocked = i == 0 || completedSet.Contains(lessons[i - 1].Id);
+                if (!isUnlocked)
+                {
+                    teaserDescription = "Разблокируется после просмотра предыдущего урока до конца.";
+                }
             }
 
             object materials;
@@ -198,6 +235,7 @@ public class LearningController(AppDbContext context) : ControllerBase
                 isUnlocked,
                 isCompleted,
                 materials,
+                previewOnly = isPreviewOnly,
             });
         }
 
@@ -226,6 +264,11 @@ public class LearningController(AppDbContext context) : ControllerBase
         if (enrolled is null)
         {
             return Forbid();
+        }
+
+        if (enrolled.AccessExpiresAtUtc is DateTime exp2 && exp2 < DateTime.UtcNow)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.Error("Срок доступа к курсу истёк."));
         }
 
         var ordered = await context.CourseLessons
@@ -283,4 +326,5 @@ public class LearningController(AppDbContext context) : ControllerBase
         var rawId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(rawId, out var userId) ? userId : null;
     }
+
 }

@@ -35,6 +35,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<OlympiadAnswerModel> OlympiadAnswers { get; set; }
 
+    public DbSet<OlympiadAttemptModel> OlympiadAttempts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -164,5 +166,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany(x => x.Answers)
             .HasForeignKey(x => x.QuestionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OlympiadAttemptModel>()
+            .HasOne(x => x.Account)
+            .WithMany(x => x.OlympiadAttempts)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OlympiadAttemptModel>()
+            .HasOne(x => x.Olympiad)
+            .WithMany(x => x.Attempts)
+            .HasForeignKey(x => x.OlympiadId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OlympiadAttemptModel>()
+            .HasIndex(x => new { x.AccountId, x.OlympiadId, x.SubmittedAtUtc });
     }
 }
