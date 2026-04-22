@@ -1687,3 +1687,149 @@
   flex: 1 1 auto;
   min-width: min(100%, 140px);
 }
+
+/* Главная: продолжить обучение + уведомления */
+.home-live-dash {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(16px, 3vw, 28px);
+  margin-bottom: clamp(40px, 6vw, 72px);
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.home-live-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: clamp(18px, 3vw, 24px);
+  box-shadow: 0 8px 28px rgba(15, 39, 68, 0.08);
+  border: 1px solid rgba(15, 39, 68, 0.06);
+}
+
+.home-live-card h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+  color: #0f2744;
+}
+
+.home-live-card .muted {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.home-resume-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-weight: 600;
+  color: #1a6b5c;
+}
+
+.home-notifications-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-notifications-list li {
+  font-size: 0.92rem;
+  color: #334155;
+  padding: 8px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.home-notifications-list li:last-child {
+  border-bottom: 0;
+}
+
+.home-notifications-list a {
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.home-notif-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  margin-right: 8px;
+}
+
+@media (max-width: 720px) {
+  .home-live-dash {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Админ: инструменты */
+.admin-tools-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 40px) 0;
+}
+
+.admin-tools-page h1 {
+  margin-bottom: 8px;
+}
+
+.admin-tools-lead {
+  color: #64748b;
+  max-width: 72ch;
+  line-height: 1.5;
+}
+
+.admin-tools-error {
+  color: #b91c1c;
+  margin: 12px 0;
+}
+
+.admin-tools-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 32px;
+}
+
+.admin-tools-audit h2 {
+  margin-bottom: 12px;
+}
+
+.admin-tools-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-tools-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.admin-tools-table th,
+.admin-tools-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.admin-tools-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #475569;
+}
+
+.admin-tools-path {
+  max-width: 360px;
+  word-break: break-all;
+}

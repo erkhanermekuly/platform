@@ -28,6 +28,7 @@ public static class SchemaPatcher
             await EnsureCoursesExtendedColumnsAsync(db, cancellationToken);
             await EnsureLearningsAccessExpiresAsync(db, cancellationToken);
             await EnsurePaymentsExtendedColumnsAsync(db, cancellationToken);
+            await EnsureAuditLogsTableAsync(db, cancellationToken);
         }
         finally
         {
@@ -435,6 +436,35 @@ public static class SchemaPatcher
                 "ALTER TABLE `OlympiadAttempts` ADD COLUMN `IsVoided` tinyint(1) NOT NULL DEFAULT 0;",
                 cancellationToken);
         }
+    }
+
+    private static async Task EnsureAuditLogsTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (await TableExistsAsync(db, "AuditLogs", cancellationToken))
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `AuditLogs` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `AccountId` int NULL,
+                `ActorEmail` varchar(191) CHARACTER SET utf8mb4 NOT NULL,
+                `HttpMethod` varchar(16) CHARACTER SET utf8mb4 NOT NULL,
+                `Path` varchar(512) CHARACTER SET utf8mb4 NOT NULL,
+                `StatusCode` int NOT NULL,
+                `Details` varchar(2000) CHARACTER SET utf8mb4 NULL,
+                `CreatedAtUtc` datetime(6) NOT NULL,
+                CONSTRAINT `PK_AuditLogs` PRIMARY KEY (`Id`),
+                CONSTRAINT `FK_AuditLogs_Accounts_AccountId` FOREIGN KEY (`AccountId`) REFERENCES `Accounts` (`Id`) ON DELETE SET NULL
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX `IX_AuditLogs_CreatedAtUtc` ON `AuditLogs` (`CreatedAtUtc`);",
+            cancellationToken);
     }
 
     private static async Task<bool> TableExistsAsync(AppDbContext db, string tableName, CancellationToken cancellationToken)

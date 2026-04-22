@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { coursesAPI, reviewsAPI, learningAPI } from '../api/courseService';
 import { useAuth } from '../context/AuthContext';
 import { AppContext } from '../context/AppContext';
@@ -24,6 +24,7 @@ function instructorInitials(name) {
 export default function CourseDetailsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
   const { purchaseCourse, enrollFreeCourse, purchasedCourses } = useContext(AppContext);
 
@@ -44,12 +45,41 @@ export default function CourseDetailsPage() {
   const [curriculumError, setCurriculumError] = useState(null);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
   const [completing, setCompleting] = useState(false);
+  const [courseProgressFromApi, setCourseProgressFromApi] = useState(null);
+  const [certBusy, setCertBusy] = useState(false);
 
   useEffect(() => {
     setCurriculum(null);
     setSelectedLessonId(null);
     setCurriculumError(null);
   }, [courseId]);
+
+  const refreshCourseProgress = useCallback(async () => {
+    if (!isAuthenticated || !Number.isFinite(cid)) return;
+    try {
+      const res = await learningAPI.getMyLearning();
+      const row = (res?.data || []).find((x) => Number(x.courseId) === cid);
+      setCourseProgressFromApi(row != null ? row.progress : null);
+    } catch {
+      setCourseProgressFromApi(null);
+    }
+  }, [isAuthenticated, cid]);
+
+  useEffect(() => {
+    if (hasAccess) {
+      refreshCourseProgress();
+    } else {
+      setCourseProgressFromApi(null);
+    }
+  }, [hasAccess, refreshCourseProgress]);
+
+  useEffect(() => {
+    if (!curriculum?.length) return;
+    const want = Number(searchParams.get('lesson'));
+    if (!Number.isFinite(want)) return;
+    const row = curriculum.find((l) => l.id === want && l.isUnlocked);
+    if (row) setSelectedLessonId(want);
+  }, [searchParams, curriculum]);
 
   const loadCurriculum = useCallback(async () => {
     if (!isAuthenticated) {
@@ -64,13 +94,18 @@ export default function CourseDetailsPage() {
       setCurriculum(rows);
       setCurriculumError(null);
       setEnrolled(true);
+      const want = Number(searchParams.get('lesson'));
       setSelectedLessonId((prev) => {
-        if (prev != null && rows.some((l) => l.id === prev)) {
+        if (Number.isFinite(want) && rows.some((l) => l.id === want && l.isUnlocked)) {
+          return want;
+        }
+        if (prev != null && rows.some((l) => l.id === prev && l.isUnlocked)) {
           return prev;
         }
         const firstOpen = rows.find((l) => l.isUnlocked) || rows[0];
         return firstOpen?.id ?? null;
       });
+      await refreshCourseProgress();
     } catch {
       setCurriculum(null);
       setCurriculumError('curriculum');
@@ -78,7 +113,7 @@ export default function CourseDetailsPage() {
         setEnrolled(false);
       }
     }
-  }, [courseId, isAuthenticated, purchasedCourses]);
+  }, [courseId, isAuthenticated, purchasedCourses, searchParams, refreshCourseProgress]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -196,10 +231,23 @@ export default function CourseDetailsPage() {
       await learningAPI.completeLesson(lessonId);
       const res = await learningAPI.getCourseCurriculum(courseId);
       setCurriculum(Array.isArray(res?.data) ? res.data : []);
+      await refreshCourseProgress();
     } catch (e) {
       alert(e?.message || 'Не удалось отметить урок');
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (certBusy) return;
+    setCertBusy(true);
+    try {
+      await learningAPI.downloadCourseCertificate(courseId);
+    } catch (e) {
+      alert(e?.message || 'Не удалось скачать сертификат');
+    } finally {
+      setCertBusy(false);
     }
   };
 
@@ -255,22 +303,34 @@ export default function CourseDetailsPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGetAccess}
-              disabled={enrolling}
-              className={`btn ${hasAccess ? 'btn-success' : 'btn-primary'} btn-large`}
-            >
-              {!isAuthenticated
-                ? 'Войти и получить доступ к урокам'
-                : enrolling
-                  ? 'Открываем доступ…'
-                  : hasAccess
-                    ? 'К программе и урокам'
-                    : Number(course.price) > 0
-                      ? 'Купить и открыть 1-й урок'
-                      : 'Начать бесплатно — 1-й урок'}
-            </button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={handleGetAccess}
+                disabled={enrolling}
+                className={`btn ${hasAccess ? 'btn-success' : 'btn-primary'} btn-large`}
+              >
+                {!isAuthenticated
+                  ? 'Войти и получить доступ к урокам'
+                  : enrolling
+                    ? 'Открываем доступ…'
+                    : hasAccess
+                      ? 'К программе и урокам'
+                      : Number(course.price) > 0
+                        ? 'Купить и открыть 1-й урок'
+                        : 'Начать бесплатно — 1-й урок'}
+              </button>
+              {isAuthenticated && hasAccess && courseProgressFromApi === 100 && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-large"
+                  disabled={certBusy}
+                  onClick={handleDownloadCertificate}
+                >
+                  {certBusy ? '…' : 'Скачать сертификат (PDF)'}
+                </button>
+              )}
+            </div>
             {isAuthenticated && hasAccess && (
               <p className="curriculum-hint" style={{ marginTop: 12 }}>
                 Доступ открыт: в программе доступен 1-й урок; остальные — после завершения предыдущего.
@@ -385,7 +445,15 @@ export default function CourseDetailsPage() {
                             !lesson.isUnlocked ? 'locked' : ''
                           }`}
                           disabled={!lesson.isUnlocked}
-                          onClick={() => lesson.isUnlocked && setSelectedLessonId(lesson.id)}
+                          onClick={() => {
+                            if (!lesson.isUnlocked) return;
+                            setSelectedLessonId(lesson.id);
+                            setSearchParams((prev) => {
+                              const n = new URLSearchParams(prev);
+                              n.set('lesson', String(lesson.id));
+                              return n;
+                            });
+                          }}
                         >
                           <span className="lesson-num">{idx + 1}.</span>
                           <span className="lesson-ti">{lesson.title}</span>

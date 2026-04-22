@@ -80,7 +80,7 @@ export default function Navbar() {
                 className={`nav-link ${location.pathname.startsWith('/olympiads') ? 'active' : ''}`}
                 onClick={() => setIsMenuOpen(false)}
               >
-                Олимпиады
+                Олимпиады для аттестации
               </Link>
               <Link
                 to="/profile"
@@ -89,6 +89,15 @@ export default function Navbar() {
               >
                 Профиль
               </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin/tools"
+                  className={`nav-link ${isActive('/admin/tools') ? 'active' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Админ: экспорт
+                </Link>
+              )}
             </>
           )}
         </div>

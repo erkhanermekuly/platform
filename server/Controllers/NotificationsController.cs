@@ -47,12 +47,53 @@ public class NotificationsController(AppDbContext context) : ControllerBase
             .Select(a => new
             {
                 a.Id,
-                Detail = a.Olympiad.Title,
+                Detail = a.Olympiad != null ? a.Olympiad.Title : "",
                 Status = a.IsVoided ? "voided" : "completed",
                 Score = (int?)a.ScorePercent,
                 At = a.SubmittedAtUtc,
             })
             .ToListAsync();
+
+        var now = DateTime.UtcNow;
+        var accessRows = await context.Learnings
+            .AsNoTracking()
+            .Where(x => x.AccountId == userId && x.AccessExpiresAtUtc != null)
+            .Select(x => new
+            {
+                x.Id,
+                x.CourseId,
+                CourseTitle = x.Course.Title,
+                x.AccessExpiresAtUtc,
+            })
+            .ToListAsync();
+
+        var accessNotifications = accessRows
+            .Where(x =>
+            {
+                var exp = x.AccessExpiresAtUtc!.Value;
+                var days = (exp - now).TotalDays;
+                return days is >= 0 and <= 14 || (days < 0 && days >= -7);
+            })
+            .Select(x =>
+            {
+                var exp = x.AccessExpiresAtUtc!.Value;
+                var expired = exp < now;
+                return new
+                {
+                    type = "access",
+                    id = x.Id,
+                    title = "Доступ к курсу",
+                    detail = x.CourseTitle,
+                    status = expired ? "expired" : "expiring",
+                    amount = (decimal?)null,
+                    scorePercent = (int?)null,
+                    at = exp,
+                    receiptUrl = (string?)null,
+                    courseId = (int?)x.CourseId,
+                    accessExpiresAtUtc = (DateTime?)exp,
+                };
+            })
+            .ToList();
 
         var items = payments
             .Select(p => new
@@ -66,6 +107,8 @@ public class NotificationsController(AppDbContext context) : ControllerBase
                 scorePercent = (int?)null,
                 at = p.At,
                 receiptUrl = p.ReceiptUrl,
+                courseId = (int?)null,
+                accessExpiresAtUtc = (DateTime?)null,
             })
             .Concat(olympiads.Select(o => new
             {
@@ -78,6 +121,22 @@ public class NotificationsController(AppDbContext context) : ControllerBase
                 scorePercent = o.Score,
                 at = o.At,
                 receiptUrl = (string?)null,
+                courseId = (int?)null,
+                accessExpiresAtUtc = (DateTime?)null,
+            }))
+            .Concat(accessNotifications.Select(a => new
+            {
+                a.type,
+                a.id,
+                a.title,
+                a.detail,
+                a.status,
+                a.amount,
+                a.scorePercent,
+                at = a.at,
+                a.receiptUrl,
+                a.courseId,
+                a.accessExpiresAtUtc,
             }))
             .OrderByDescending(x => x.at)
             .Take(take)

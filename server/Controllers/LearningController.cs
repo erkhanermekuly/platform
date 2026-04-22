@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using server.DTOs;
 using server.Infrastructure;
 using server.Models;
@@ -11,7 +12,7 @@ namespace server.Controllers;
 [Route("api/learning")]
 [ApiController]
 [Authorize]
-public class LearningController(AppDbContext context) : ControllerBase
+public class LearningController(AppDbContext context, IConfiguration configuration) : ControllerBase
 {
     [HttpGet("my")]
     [HttpGet]
@@ -42,6 +43,140 @@ public class LearningController(AppDbContext context) : ControllerBase
             .ToListAsync();
 
         return Ok(ApiResponse<object>.Ok(items));
+    }
+
+    /// <summary>Курс для продолжения: приоритет незавершённому, затем последний по активности.</summary>
+    [HttpGet("resume")]
+    public async Task<IActionResult> GetResume()
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var now = DateTime.UtcNow;
+        var rows = await context.Learnings
+            .AsNoTracking()
+            .Where(x => x.AccountId == userId)
+            .OrderByDescending(x => x.LastAccessed)
+            .Select(x => new
+            {
+                x.CourseId,
+                x.Progress,
+                x.LastAccessed,
+                title = x.Course.Title,
+                x.AccessExpiresAtUtc,
+            })
+            .ToListAsync();
+
+        static bool AccessExpired(DateTime? exp, DateTime utcNow) => exp is DateTime d && d < utcNow;
+
+        var active = rows.Where(r => !AccessExpired(r.AccessExpiresAtUtc, now)).ToList();
+        var focus = active.FirstOrDefault(r => r.Progress < 100) ?? active.FirstOrDefault();
+        if (focus is null)
+        {
+            return Ok(ApiResponse<object>.Ok(new { resume = (object?)null }));
+        }
+
+        var orderedLessonIds = await context.CourseLessons
+            .AsNoTracking()
+            .Where(l => l.CourseId == focus.CourseId)
+            .OrderBy(l => l.SortOrder)
+            .ThenBy(l => l.Id)
+            .Select(l => l.Id)
+            .ToListAsync();
+
+        int? nextLessonId = null;
+        if (orderedLessonIds.Count > 0)
+        {
+            var completed = await context.LessonCompletions
+                .AsNoTracking()
+                .Where(c => c.AccountId == userId && orderedLessonIds.Contains(c.CourseLessonId))
+                .Select(c => c.CourseLessonId)
+                .ToListAsync();
+            var done = completed.ToHashSet();
+            foreach (var id in orderedLessonIds)
+            {
+                if (!done.Contains(id))
+                {
+                    nextLessonId = id;
+                    break;
+                }
+            }
+
+            if (nextLessonId is null)
+            {
+                nextLessonId = orderedLessonIds[^1];
+            }
+        }
+
+        var qs = nextLessonId is int lid ? $"?lesson={lid}" : "";
+        var continuePath = $"/course/{focus.CourseId}{qs}";
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            resume = new
+            {
+                focus.CourseId,
+                courseTitle = focus.title,
+                focus.Progress,
+                lastAccessed = focus.LastAccessed.ToString("yyyy-MM-dd"),
+                focus.AccessExpiresAtUtc,
+                nextLessonId,
+                continuePath,
+            },
+        }));
+    }
+
+    [HttpGet("course/{courseId:int}/certificate")]
+    public async Task<IActionResult> GetCourseCertificate(int courseId)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var learning = await context.Learnings
+            .AsNoTracking()
+            .Include(x => x.Course)
+            .FirstOrDefaultAsync(x => x.AccountId == userId && x.CourseId == courseId);
+        if (learning is null)
+        {
+            return NotFound(ApiResponse.Error("Запись на курс не найдена"));
+        }
+
+        if (learning.AccessExpiresAtUtc is DateTime exp && exp < DateTime.UtcNow)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.Error("Срок доступа к курсу истёк."));
+        }
+
+        if (learning.Progress < 100)
+        {
+            return BadRequest(ApiResponse.Error("Сертификат доступен после завершения всех уроков курса (прогресс 100%)."));
+        }
+
+        var account = await context.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == userId);
+        var fullName = account?.Name;
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            fullName = User.FindFirstValue(ClaimTypes.Name);
+        }
+
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            fullName = "Участник";
+        }
+
+        var label = configuration["Certificate:PlatformLabel"];
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            label = "LearnHub";
+        }
+
+        var pdf = CourseCertificatePdf.Generate(fullName, learning.Course.Title, DateTime.UtcNow, label);
+        return File(pdf, "application/pdf", $"certificate-course-{courseId}.pdf");
     }
 
     [HttpPost("enroll/{courseId:int}")]

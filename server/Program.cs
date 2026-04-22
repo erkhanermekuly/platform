@@ -90,6 +90,8 @@ app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<AuditLogMiddleware>();
+
 app.UseRateLimiter();
 
 app.MapControllers();
@@ -105,11 +107,23 @@ if (initDb)
     {
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var createdNew = await db.Database.EnsureCreatedAsync();
+        var useMigrations = app.Configuration.GetValue<bool>("Database:ApplyEfMigrations");
+        bool createdNew;
+        if (useMigrations)
+        {
+            await db.Database.MigrateAsync();
+            createdNew = false;
+        }
+        else
+        {
+            createdNew = await db.Database.EnsureCreatedAsync();
+        }
+
         await SchemaPatcher.ApplyAsync(db);
         await DatabaseSeeder.SeedIfEmptyAsync(db);
         app.Logger.LogInformation(
-            "БД: EnsureCreated (новая схема={Created}). Сид выполнен, если не было курсов.",
+            "БД: {Mode} (новая_схема_EnsureCreated={Created}). Сид выполнен, если не было курсов.",
+            useMigrations ? "MigrateAsync + SchemaPatcher" : "EnsureCreated + SchemaPatcher",
             createdNew);
     }
     catch (Exception ex)

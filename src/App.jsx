@@ -17,6 +17,7 @@ import OlympiadsPage from './pages/OlympiadsPage'
 import OlympiadTestPage from './pages/OlympiadTestPage'
 import AdminOlympiadQuestionsPage from './pages/AdminOlympiadQuestionsPage'
 import AdminOlympiadResultsPage from './pages/AdminOlympiadResultsPage'
+import AdminToolsPage from './pages/AdminToolsPage'
 import Profile from './pages/Profile/Profile'
 import './styles/global.css'
 import './App.css'
@@ -217,6 +218,14 @@ function App() {
                 element={
                   <AdminOnlyRoute>
                     <AdminOlympiadResultsPage />
+                  </AdminOnlyRoute>
+                }
+              />
+              <Route
+                path="/admin/tools"
+                element={
+                  <AdminOnlyRoute>
+                    <AdminToolsPage />
                   </AdminOnlyRoute>
                 }
               />

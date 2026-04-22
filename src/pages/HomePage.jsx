@@ -1,15 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCourses } from '../hooks/useApi';
 import { useAuth } from '../context/AuthContext';
 import { coursesSectionPath } from '../auth/roles';
+import { learningAPI, notificationsAPI } from '../api/courseService';
 import '../styles/pages.css';
+
+function formatNotifAt(at) {
+  if (!at) return '';
+  const s = String(at);
+  return s.includes('T') ? s.replace('T', ' ').slice(0, 16) : s.slice(0, 16);
+}
 
 export default function HomePage() {
   const { courses, loading } = useCourses();
   const { userRole } = useAuth();
   const [category, setCategory] = useState('all');
+  const [resume, setResume] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [dashLoading, setDashLoading] = useState(true);
   const coursesPath = coursesSectionPath(userRole);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [r, n] = await Promise.all([learningAPI.getResume(), notificationsAPI.recent(10)]);
+        if (cancelled) return;
+        setResume(r?.data?.resume ?? null);
+        setNotifications(Array.isArray(n?.data) ? n.data : []);
+      } catch {
+        if (!cancelled) {
+          setResume(null);
+          setNotifications([]);
+        }
+      } finally {
+        if (!cancelled) setDashLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredCourses = category === 'all' 
     ? courses.slice(0, 3)
@@ -55,6 +87,75 @@ export default function HomePage() {
               BilimAll
             </text>
           </svg>
+        </div>
+      </section>
+
+      <section className="home-live-dash" aria-label="Обучение и уведомления">
+        <div className="home-live-card">
+          <h2>Продолжить обучение</h2>
+          {dashLoading ? (
+            <p className="muted">Загрузка…</p>
+          ) : resume ? (
+            <>
+              <p className="muted" style={{ marginBottom: 4 }}>
+                <strong>{resume.courseTitle}</strong>
+                {typeof resume.progress === 'number' ? ` · прогресс ${resume.progress}%` : ''}
+              </p>
+              <Link to={resume.continuePath || `/course/${resume.courseId}`} className="home-resume-link">
+                Перейти к урокам →
+              </Link>
+            </>
+          ) : (
+            <p className="muted">Пока нет курсов в обучении. Выберите курс в разделе «Курсы».</p>
+          )}
+        </div>
+        <div className="home-live-card">
+          <h2>Последние события</h2>
+          {dashLoading ? (
+            <p className="muted">Загрузка…</p>
+          ) : notifications.length === 0 ? (
+            <p className="muted">Пока нет платежей и попыток — здесь появятся оплаты, олимпиады и напоминания о доступе.</p>
+          ) : (
+            <ul className="home-notifications-list">
+              {notifications.slice(0, 8).map((item) => {
+                const key = `${item.type}-${item.id}`;
+                const label =
+                  item.type === 'payment'
+                    ? 'Оплата'
+                    : item.type === 'olympiad'
+                      ? 'Олимпиада'
+                      : item.type === 'access'
+                        ? 'Доступ'
+                        : item.type;
+                const href =
+                  item.type === 'access' && item.courseId
+                    ? `/course/${item.courseId}`
+                    : item.type === 'olympiad'
+                      ? '/olympiads'
+                      : null;
+                return (
+                  <li key={key}>
+                    <span className="home-notif-badge">{label}</span>
+                    <span>{item.detail || '—'}</span>
+                    {item.status ? (
+                      <span className="muted" style={{ marginLeft: 6 }}>
+                        ({item.status})
+                      </span>
+                    ) : null}
+                    <span className="muted" style={{ marginLeft: 6 }}>
+                      · {formatNotifAt(item.at)}
+                    </span>
+                    {href ? (
+                      <>
+                        {' '}
+                        <Link to={href}>Открыть</Link>
+                      </>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </section>
 

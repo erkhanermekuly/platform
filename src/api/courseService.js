@@ -207,6 +207,8 @@ export const authAPI = {
 export const learningAPI = {
   getMyLearning: async () => request('/learning/my'),
 
+  getResume: async () => request('/learning/resume'),
+
   enrollCourse: async (courseId) =>
     request(`/learning/enroll/${courseId}`, { method: 'POST' }),
 
@@ -221,6 +223,101 @@ export const learningAPI = {
 
   completeLesson: async (lessonId) =>
     request(`/learning/lessons/${lessonId}/complete`, { method: 'POST' }),
+
+  /** Скачать PDF-сертификат (только при прогрессе 100% на сервере). */
+  downloadCourseCertificate: async (courseId) => {
+    const token = getAuthToken();
+    if (!token) throw new Error('Войдите в систему');
+    const n = Number(courseId);
+    if (!Number.isFinite(n) || n < 1) throw new Error('Некорректный курс');
+    const response = await fetch(buildUrl(`/learning/course/${n}/certificate`), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let payload = null;
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
+        payload = null;
+      }
+      throw new Error(parseErrorMessage(response, text, payload));
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `certificate-course-${n}.pdf`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+};
+
+export const notificationsAPI = {
+  recent: async (take = 8) => request('/notifications/recent', { method: 'GET' }, { take }),
+};
+
+export const adminToolsAPI = {
+  getAuditRecent: async (take = 200) => request('/admin/audit/recent', { method: 'GET' }, { take }),
+
+  downloadPaymentsCsv: async () => {
+    const token = getAuthToken();
+    if (!token) throw new Error('Войдите как администратор');
+    const response = await fetch(buildUrl('/admin/exports/payments.csv'), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let payload = null;
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
+        payload = null;
+      }
+      throw new Error(parseErrorMessage(response, text, payload));
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payments-${new Date().toISOString().slice(0, 19).replace(/:/g, '')}.csv`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  downloadOlympiadAttemptsCsv: async () => {
+    const token = getAuthToken();
+    if (!token) throw new Error('Войдите как администратор');
+    const response = await fetch(buildUrl('/admin/exports/olympiad-attempts.csv'), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let payload = null;
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
+        payload = null;
+      }
+      throw new Error(parseErrorMessage(response, text, payload));
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `olympiad-attempts-${new Date().toISOString().slice(0, 19).replace(/:/g, '')}.csv`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const reviewsAPI = {

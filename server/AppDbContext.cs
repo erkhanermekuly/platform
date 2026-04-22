@@ -37,6 +37,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<OlympiadAttemptModel> OlympiadAttempts { get; set; }
 
+    public DbSet<AuditLogModel> AuditLogs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -181,5 +183,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.Entity<OlympiadAttemptModel>()
             .HasIndex(x => new { x.AccountId, x.OlympiadId, x.SubmittedAtUtc });
+
+        modelBuilder.Entity<AuditLogModel>()
+            .HasIndex(x => x.CreatedAtUtc);
+
+        modelBuilder.Entity<AuditLogModel>()
+            .HasOne(x => x.Account)
+            .WithMany()
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
