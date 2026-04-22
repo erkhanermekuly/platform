@@ -1,0 +1,77 @@
+/* Профиль — ширина, отступы и сетка на узких экранах */
+
+.profile-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  /* Горизонтальные отступы даёт <main>; здесь только вертикаль и safe-area снизу */
+  padding-top: clamp(4px, 1.5vw, 12px);
+  padding-bottom: max(clamp(20px, 4vw, 32px), env(safe-area-inset-bottom, 0px));
+}
+
+.profile-inner {
+  width: 100%;
+  max-width: min(980px, 100%);
+  min-width: 0;
+}
+
+.profile-page .profile-title {
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.2;
+}
+
+.profile-stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr));
+}
+
+@media (max-width: 480px) {
+  .profile-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-section-head {
+  flex-wrap: wrap;
+}
+
+.profile-select {
+  width: 100%;
+  max-width: min(100%, 420px);
+  min-width: 0;
+}
+
+.profile-list-row {
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .profile-section-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-section-head .profile-link-btn {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .profile-list-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-list-row .profile-badge,
+  .profile-list-row .profile-progress {
+    align-self: flex-end;
+  }
+}

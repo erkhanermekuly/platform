@@ -10,6 +10,9 @@ public static class DatabaseSeeder
 {
     public static async Task SeedIfEmptyAsync(AppDbContext context, CancellationToken cancellationToken = default)
     {
+        // Старые демо-аккаунты из ранних сидов (ivan/maria) → admin@ / teacher@, пароль 123456
+        await SyncLegacyDemoAccountsAsync(context, cancellationToken);
+
         if (await context.Courses.AnyAsync(cancellationToken))
         {
             await SeedResourcesIfEmptyAsync(context, cancellationToken);
@@ -17,9 +20,9 @@ public static class DatabaseSeeder
             return;
         }
 
-        var admin = CreateAccount("Иван Иванов", "ivan@example.com", "admin");
+        var admin = CreateAccount("Нұрлан Серікұлы", "admin@example.com", "admin");
 
-        var teacher = CreateAccount("Мария Учитель", "maria@example.com", "teacher");
+        var teacher = CreateAccount("Айгүл Мұратқызы", "teacher@example.com", "teacher");
 
         context.Accounts.AddRange(admin, teacher);
         await context.SaveChangesAsync(cancellationToken);
@@ -38,7 +41,7 @@ public static class DatabaseSeeder
                 {
                     CourseId = course.Id,
                     Title = module.Title,
-                    Description = $"План модуля: {module.Lessons} занятий, {module.Duration}",
+                    Description = $"Модуль жоспары: {module.Lessons} сабақ, {module.Duration}",
                     SortOrder = order,
                     VideoUrl = isFirst ? course.VideoUrl : null,
                 });
@@ -52,7 +55,7 @@ public static class DatabaseSeeder
             new CourseFileModel
             {
                 CourseId = courses[0].Id,
-                Name = "Методические рекомендации.pdf",
+                Name = "Әдістемелік ұсынымдар.pdf",
                 Type = "pdf",
                 RelativePath = "",
                 SizeBytes = 0,
@@ -61,7 +64,7 @@ public static class DatabaseSeeder
             new CourseFileModel
             {
                 CourseId = courses[0].Id,
-                Name = "Шаблон плана занятия.docx",
+                Name = "Сабақ жоспарының үлгісі.docx",
                 Type = "docx",
                 RelativePath = "",
                 SizeBytes = 0,
@@ -90,7 +93,7 @@ public static class DatabaseSeeder
                 AccountId = admin.Id,
                 CourseId = courses[0].Id,
                 Rating = 5,
-                Text = "Отличный курс! Очень понятно объяснено",
+                Text = "Керемет курс! Мазмұны өте түсінікті берілген",
                 CreatedAt = DateTime.UtcNow.AddDays(-10),
             });
 
@@ -119,16 +122,16 @@ public static class DatabaseSeeder
             context.NormativeDocuments.AddRange(
                 new NormativeDocumentModel
                 {
-                    Title = "Типовая образовательная программа ДО",
-                    Description = "Базовые требования к содержанию, условиям и результатам дошкольного образования.",
-                    Url = "https://adilet.zan.kz/rus",
+                    Title = "Мектеп жасына дейінгі білім берудің үлгілік оқу бағдарламасы",
+                    Description = "Мазмұны, шарттары мен нәтижелері бойынша мектеп жасына дейінгі білім беруге қойылатын негізгі талаптар.",
+                    Url = "https://adilet.zan.kz",
                     CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
                 },
                 new NormativeDocumentModel
                 {
-                    Title = "Санитарные требования для ДО",
-                    Description = "Краткий ориентир по санитарным нормам организации образовательной среды.",
-                    Url = "https://adilet.zan.kz/rus",
+                    Title = "Мектеп жасына дейінгі ұйымдарға санитариялық талаптар",
+                    Description = "Білім беру ортасын ұйымдастырудағы санитариялық нормаларға қысқаша бағдар.",
+                    Url = "https://adilet.zan.kz",
                     CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
                 });
         }
@@ -138,15 +141,15 @@ public static class DatabaseSeeder
             context.EventScenarios.AddRange(
                 new EventScenarioModel
                 {
-                    Title = "Сценарий утренника «Осенний бал»",
-                    Description = "Пошаговый план с распределением ролей, музыкальными паузами и реквизитом.",
+                    Title = "Таңертеңгілік «Күзгі бал» сценарийі",
+                    Description = "Рөлдерді бөлу, музыкалық үзілімдер және реквизит бойынша қадамдық жоспар.",
                     Url = null,
                     CreatedAtUtc = DateTime.UtcNow.AddDays(-3),
                 },
                 new EventScenarioModel
                 {
-                    Title = "Сценарий тематического дня «Безопасность»",
-                    Description = "Интерактивные задания и мини-игры для закрепления правил безопасности.",
+                    Title = "Тақырыптық күн «Қауіпсіздік» сценарийі",
+                    Description = "Қауіпсіздік ережелерін бекітуге арналған интерактивті тапсырмалар мен мини-ойындар.",
                     Url = null,
                     CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
                 });
@@ -157,19 +160,75 @@ public static class DatabaseSeeder
             context.AdditionalMaterials.AddRange(
                 new AdditionalMaterialModel
                 {
-                    Title = "Шаблон недельного плана занятий",
-                    Description = "Готовый шаблон для быстрого планирования занятий и развивающих активностей.",
+                    Title = "Апталық сабақтар жоспарының үлгісі",
+                    Description = "Сабақтар мен дамытушылық белсенділіктерді жылдам жоспарлауға дайын үлгі.",
                     Url = null,
                     CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
                 },
                 new AdditionalMaterialModel
                 {
-                    Title = "Карточки для развития речи",
-                    Description = "Подборка карточек и упражнений для групповой и индивидуальной работы.",
+                    Title = "Сөйлеуді дамытуға арналған карточкалар",
+                    Description = "Топтық және жеке жұмыс үшін карточкалар мен жаттығулар жинағы.",
                     Url = null,
                     CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
                 });
         }
+    }
+
+    /// <summary>
+    /// Однократно приводит старые сиды к новым email/именам, если в БД ещё есть ivan@ / maria@.
+    /// </summary>
+    private static async Task SyncLegacyDemoAccountsAsync(AppDbContext context, CancellationToken cancellationToken)
+    {
+        const string demoPassword = "123456";
+        var hash = BCrypt.Net.BCrypt.HashPassword(demoPassword);
+
+        await TryMigrateLegacyEmailAsync(
+            context,
+            fromEmail: "ivan@example.com",
+            toEmail: "admin@example.com",
+            name: "Нұрлан Серікұлы",
+            role: "admin",
+            passwordHash: hash,
+            cancellationToken);
+
+        await TryMigrateLegacyEmailAsync(
+            context,
+            fromEmail: "maria@example.com",
+            toEmail: "teacher@example.com",
+            name: "Айгүл Мұратқызы",
+            role: "teacher",
+            passwordHash: hash,
+            cancellationToken);
+
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task TryMigrateLegacyEmailAsync(
+        AppDbContext context,
+        string fromEmail,
+        string toEmail,
+        string name,
+        string role,
+        string passwordHash,
+        CancellationToken cancellationToken)
+    {
+        var legacy = await context.Accounts.FirstOrDefaultAsync(
+            a => a.Email == fromEmail,
+            cancellationToken);
+        if (legacy == null)
+            return;
+
+        var emailTaken = await context.Accounts.AnyAsync(
+            a => a.Email == toEmail && a.Id != legacy.Id,
+            cancellationToken);
+        if (emailTaken)
+            return;
+
+        legacy.Email = toEmail;
+        legacy.Name = name;
+        legacy.Role = role;
+        legacy.PasswordHash = passwordHash;
     }
 
     private static AccountModel CreateAccount(string name, string email, string role) =>
@@ -186,74 +245,74 @@ public static class DatabaseSeeder
     [
         new()
         {
-            Title = "Основы дошкольного образования",
-            Description = "Полный курс для учителей, начинающих работать в детском саду",
+            Title = "Мектеп жасына дейінгі білім берудің негіздері",
+            Description = "Балабақшада жұмыс бастайтын педагогтерге арналған толық курс",
             Category = "beginner",
             Level = "beginner",
             Price = 0,
             IsLocked = false,
             VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
             Image = "https://images.unsplash.com/photo-1503672260482-696c7ebc5cb2?w=400",
-            InstructorName = "Елена Петрова",
+            InstructorName = "Динара Қасымова",
             InstructorAvatar = null,
-            InstructorBio = "Методист по дошкольному образованию",
+            InstructorBio = "Мектеп жасына дейінгі білім беру бойынша әдіскер",
             Rating = 4.8,
             Students = 12540,
-            Duration = "40 часов",
+            Duration = "40 сағат",
             CreatedByAccount = author,
             Modules =
             [
-                new() { Title = "Введение", Lessons = 5, Duration = "2 часа", SortOrder = 1 },
-                new() { Title = "Возрастная педагогика", Lessons = 10, Duration = "8 часов", SortOrder = 2 },
-                new() { Title = "Практика занятий", Lessons = 8, Duration = "7 часов", SortOrder = 3 },
+                new() { Title = "Кіріспе", Lessons = 5, Duration = "2 сағат", SortOrder = 1 },
+                new() { Title = "Жас ерекшелігіне сай педагогика", Lessons = 10, Duration = "8 сағат", SortOrder = 2 },
+                new() { Title = "Сабақ практикасы", Lessons = 8, Duration = "7 сағат", SortOrder = 3 },
             ],
         },
         new()
         {
-            Title = "Развитие речи у дошкольников",
-            Description = "Продвинутые техники работы с развитием речи",
+            Title = "Балалардың сөйлеуін дамыту",
+            Description = "Сөйлеуді дамыту бойынша тереңдетілген әдістемелер",
             Category = "advanced",
             Level = "advanced",
             Price = 2999,
             IsLocked = true,
             VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
             Image = "https://images.unsplash.com/photo-1516534775068-bb61e764cd12?w=400",
-            InstructorName = "Максим Кулаков",
+            InstructorName = "Ерлан Бекмұратов",
             InstructorAvatar = null,
             InstructorBio = "Педагог-дефектолог",
             Rating = 4.7,
             Students = 5420,
-            Duration = "50 часов",
+            Duration = "50 сағат",
             CreatedByAccount = author,
             Modules =
             [
-                new() { Title = "Речевая диагностика", Lessons = 7, Duration = "6 часов", SortOrder = 1 },
-                new() { Title = "Техники развития", Lessons = 8, Duration = "7 часов", SortOrder = 2 },
-                new() { Title = "Практика", Lessons = 6, Duration = "5 часов", SortOrder = 3 },
+                new() { Title = "Сөйлеу диагностикасы", Lessons = 7, Duration = "6 сағат", SortOrder = 1 },
+                new() { Title = "Дамыту техникалары", Lessons = 8, Duration = "7 сағат", SortOrder = 2 },
+                new() { Title = "Практика", Lessons = 6, Duration = "5 сағат", SortOrder = 3 },
             ],
         },
         new()
         {
-            Title = "Творческие занятия и арт-терапия",
-            Description = "Интерактивные методы обучения через искусство",
+            Title = "Шығармашылық сабақтар және арт-терапия",
+            Description = "Өнер арқылы оқытудың интерактивті әдістері",
             Category = "intermediate",
             Level = "intermediate",
             Price = 1999,
             IsLocked = true,
             VideoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ",
             Image = "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400",
-            InstructorName = "Ольга Иванова",
+            InstructorName = "Сәуле Нұрғалиева",
             InstructorAvatar = null,
-            InstructorBio = "Преподаватель арт-терапии",
+            InstructorBio = "Арт-терапия педагогы",
             Rating = 4.6,
             Students = 7210,
-            Duration = "35 часов",
+            Duration = "35 сағат",
             CreatedByAccount = author,
             Modules =
             [
-                new() { Title = "Основы арт-подхода", Lessons = 6, Duration = "4 часа", SortOrder = 1 },
-                new() { Title = "Методики творчества", Lessons = 8, Duration = "6 часов", SortOrder = 2 },
-                new() { Title = "Групповые занятия", Lessons = 5, Duration = "5 часов", SortOrder = 3 },
+                new() { Title = "Арт-подходтың негіздері", Lessons = 6, Duration = "4 сағат", SortOrder = 1 },
+                new() { Title = "Шығармашылық әдістемелері", Lessons = 8, Duration = "6 сағат", SortOrder = 2 },
+                new() { Title = "Топтық сабақтар", Lessons = 5, Duration = "5 сағат", SortOrder = 3 },
             ],
         },
     ];

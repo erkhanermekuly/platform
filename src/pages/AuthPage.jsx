@@ -76,7 +76,9 @@ export default function AuthPage() {
               {loading ? '…' : 'Войти'}
             </button>
           </form>
-          <p className={styles.hint}>Демо после сида: ivan@example.com / 123456 (админ), maria@example.com / 123456 (учитель)</p>
+          <p className={styles.hint}>
+            Демо: admin@example.com / 123456 (админ)
+          </p>
         </div>
         <div className={`${styles.panel} ${styles.panelGradient}`}>
           <div className={styles.titleContainer}>

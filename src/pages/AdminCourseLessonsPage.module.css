@@ -181,3 +181,36 @@
   color: #4f46e5;
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .page {
+    padding: 20px 14px 48px;
+  }
+
+  .section {
+    padding: 18px 14px;
+  }
+
+  .lessonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .inputSmall {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 16px 12px 40px;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .input,
+  .textarea {
+    font-size: 16px;
+  }
+}

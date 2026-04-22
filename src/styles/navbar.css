@@ -285,6 +285,13 @@
   .navbar-container {
     padding: 0 20px;
     height: 70px;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  /* Логотип слева, бургер и блок пользователя — справа вместе (не по центру экрана) */
+  .navbar-logo {
+    margin-right: auto;
   }
 
   .menu-toggle {
@@ -307,7 +314,9 @@
   }
 
   .navbar-menu.active {
-    max-height: 500px;
+    max-height: min(100dvh - 96px, 920px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .nav-link {
@@ -349,6 +358,7 @@
   .navbar-container {
     padding: 0 15px;
     height: 60px;
+    gap: 8px;
   }
 
   .navbar-logo {

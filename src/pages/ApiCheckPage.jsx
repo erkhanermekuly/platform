@@ -22,7 +22,7 @@ export default function ApiCheckPage() {
   };
 
   return (
-    <div className="course-details-page" style={{ padding: '24px', maxWidth: 960, margin: '0 auto' }}>
+    <div className="course-details-page api-check-page">
       <p style={{ marginBottom: 16 }}>
         <Link to="/courses">← К курсам</Link>
       </p>
@@ -32,7 +32,7 @@ export default function ApiCheckPage() {
         <code>127.0.0.1:5240</code>).
       </p>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+      <div className="api-check-actions">
         <button
           type="button"
           className="btn btn-primary"

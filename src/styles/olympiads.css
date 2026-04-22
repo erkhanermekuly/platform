@@ -554,3 +554,48 @@
   color: var(--olym-text);
   font-size: 13px;
 }
+
+@media (max-width: 720px) {
+  .olym-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .olym-card-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .olym-btn--primary {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .olym-input,
+  .olym-textarea {
+    font-size: 16px;
+  }
+
+  .olym-q-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .olym-root {
+    padding: 16px 12px 48px;
+  }
+
+  .olym-form-panel {
+    padding: 18px 14px;
+  }
+
+  .olym-admin-bonus-form {
+    flex-wrap: wrap;
+  }
+
+  .olym-admin-bonus-input {
+    width: 100%;
+    max-width: 120px;
+  }
+}

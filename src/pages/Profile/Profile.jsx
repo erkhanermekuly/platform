@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authAPI, learningAPI, olympiadsAPI } from '../../api/courseService';
 import { useAuth } from '../../context/AuthContext';
+import './profile.css';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -147,9 +148,11 @@ function Profile() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <h1 style={styles.title}>Профиль</h1>
+    <div className="profile-page" style={styles.page}>
+      <div className="profile-inner" style={styles.container}>
+        <h1 className="profile-title" style={styles.title}>
+          Профиль
+        </h1>
         <p style={styles.subtitle}>Личные данные, результаты и ваш доступ к обучению.</p>
 
         {error ? <div style={styles.error}>{error}</div> : null}
@@ -162,7 +165,7 @@ function Profile() {
           </div>
         </section>
 
-        <section style={styles.statsGrid}>
+        <section className="profile-stats-grid" style={styles.statsGrid}>
           <div style={styles.statCard}>
             <div style={styles.statNumber}>{myCourses.length}</div>
             <div style={styles.statLabel}>Доступных курсов</div>
@@ -182,9 +185,9 @@ function Profile() {
         </section>
 
         <section style={styles.card}>
-          <div style={styles.sectionHeader}>
+          <div className="profile-section-head" style={styles.sectionHeader}>
             <h3 style={styles.sectionTitle}>Результаты олимпиад</h3>
-            <Link to="/olympiads" style={styles.linkBtn}>
+            <Link to="/olympiads" className="profile-link-btn" style={styles.linkBtn}>
               К олимпиадам
             </Link>
           </div>
@@ -216,7 +219,7 @@ function Profile() {
               </div>
               <div style={styles.list}>
                 {displayedOlympiadRows.map((item) => (
-                  <div key={item.id} style={styles.listItem}>
+                  <div key={item.id} className="profile-list-row" style={styles.listItem}>
                     <div>
                       <div style={styles.itemTitle}>
                         {item.olympiadTitle}
@@ -240,7 +243,9 @@ function Profile() {
                         </div>
                       ) : null}
                     </div>
-                    <div style={styles.badge}>{item.ratingScore ?? item.scorePercent}%</div>
+                    <div className="profile-badge" style={styles.badge}>
+                      {item.ratingScore ?? item.scorePercent}%
+                    </div>
                   </div>
                 ))}
               </div>
@@ -249,9 +254,9 @@ function Profile() {
         </section>
 
         <section style={styles.card}>
-          <div style={styles.sectionHeader}>
+          <div className="profile-section-head" style={styles.sectionHeader}>
             <h3 style={styles.sectionTitle}>Доступные (купленные) курсы</h3>
-            <Link to="/my-learning" style={styles.linkBtn}>
+            <Link to="/my-learning" className="profile-link-btn" style={styles.linkBtn}>
               Мое обучение
             </Link>
           </div>
@@ -265,6 +270,7 @@ function Profile() {
                 </label>
                 <select
                   id="profile-course-sort"
+                  className="profile-select"
                   style={styles.select}
                   value={courseSort}
                   onChange={(e) => setCourseSort(e.target.value)}
@@ -277,13 +283,15 @@ function Profile() {
               </div>
               <div style={styles.list}>
               {sortedCourses.map((course) => (
-                <div key={course.id} style={styles.listItem}>
+                <div key={course.id} className="profile-list-row" style={styles.listItem}>
                   <div>
                     <div style={styles.itemTitle}>{course.title}</div>
                     <div style={styles.itemMeta}>Преподаватель: {course.instructor || '—'}</div>
                     <div style={styles.itemMeta}>Последний доступ: {course.lastAccessed || '—'}</div>
                   </div>
-                  <div style={styles.progress}>{course.progress || 0}%</div>
+                  <div className="profile-progress" style={styles.progress}>
+                    {course.progress || 0}%
+                  </div>
                 </div>
               ))}
               </div>
@@ -297,19 +305,18 @@ function Profile() {
 
 const styles = {
   page: {
-    minHeight: '100vh',
     background: 'linear-gradient(160deg, #e8eef9 0%, #f0f4ff 45%, #e9ecf5 100%)',
-    padding: '32px 16px',
   },
   container: {
     maxWidth: 980,
+    width: '100%',
     margin: '0 auto',
     display: 'grid',
     gap: 16,
+    minWidth: 0,
   },
   title: {
     margin: 0,
-    fontSize: 32,
     color: '#1f2937',
   },
   subtitle: {
@@ -337,7 +344,6 @@ const styles = {
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
     gap: 12,
   },
   statCard: {
@@ -402,7 +408,7 @@ const styles = {
     color: '#2b52b5',
   },
   select: {
-    minWidth: 220,
+    minWidth: 0,
     maxWidth: '100%',
     padding: '8px 10px',
     borderRadius: 10,

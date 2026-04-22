@@ -11,8 +11,8 @@ POST {{server_HostAddress}}/auth/register
 Content-Type: application/json
 
 {
-  "name": "Иван Иванов",
-  "email": "ivan@example.com",
+  "name": "Нұрлан Серікұлы",
+  "email": "admin@example.com",
   "password": "123456"
 }
 
@@ -23,7 +23,7 @@ POST {{server_HostAddress}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "ivan@example.com",
+  "email": "admin@example.com",
   "password": "123456"
 }
 

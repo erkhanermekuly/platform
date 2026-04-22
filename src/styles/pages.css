@@ -2,6 +2,8 @@
 
 .home-page {
   width: 100%;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 /* Hero — на всю ширину окна, спокойная палитра */
@@ -15,6 +17,7 @@
   margin-right: calc(-1 * var(--main-inline-pad, 24px));
   width: calc(100% + 2 * var(--main-inline-pad, 24px));
   max-width: none;
+  box-sizing: border-box;
   color: #f8fafc;
   border-radius: 0 0 28px 28px;
   margin-bottom: clamp(56px, 8vw, 96px);
@@ -483,7 +486,7 @@
 
 .resource-search {
   flex: 1;
-  min-width: 240px;
+  min-width: 0;
 }
 
 .resource-empty {
@@ -611,7 +614,8 @@
 
 .courses-page {
   width: 100%;
-  padding: 40px;
+  min-width: 0;
+  padding: clamp(16px, 4vw, 40px) 0;
 }
 
 .courses-container {
@@ -830,12 +834,14 @@
 
 .course-details-page {
   width: 100%;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .course-header-section {
   background: linear-gradient(135deg, #3b6fd8 0%, #2b52b5 100%);
   color: white;
-  padding: 40px;
+  padding: clamp(20px, 5vw, 40px);
   margin-bottom: 40px;
 }
 
@@ -911,6 +917,9 @@
   position: sticky;
   top: 80px;
   z-index: 10;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .tab-btn {
@@ -923,6 +932,7 @@
   cursor: pointer;
   border-bottom: 3px solid transparent;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
@@ -973,11 +983,13 @@
 
 .instructor-card {
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   padding: 25px;
   background: var(--light-gray);
   border-radius: 12px;
   margin-top: 20px;
+  align-items: center;
 }
 
 .instructor-card__initials {
@@ -1210,6 +1222,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
@@ -1235,7 +1249,8 @@
 /* ==================== MY LEARNING PAGE ==================== */
 
 .my-learning-page {
-  padding: 40px;
+  min-width: 0;
+  padding: clamp(16px, 4vw, 40px) 0;
 }
 
 .page-header {
@@ -1243,7 +1258,7 @@
 }
 
 .page-header h1 {
-  font-size: 36px;
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
   font-weight: 700;
   margin-bottom: 5px;
 }
@@ -1255,10 +1270,13 @@
 
 .learning-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 30px;
   border-bottom: 2px solid var(--border);
   padding-bottom: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .filter-btn {
@@ -1570,6 +1588,10 @@
     gap: 15px;
   }
 
+  .courses-header h1 {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+  }
+
   .sort-controls {
     width: 100%;
   }
@@ -1590,6 +1612,8 @@
 
   .course-tabs {
     overflow-x: auto;
+    top: 70px;
+    padding: 0 clamp(12px, 3vw, 28px);
   }
 
   .learning-actions {
@@ -1620,7 +1644,12 @@
   }
 
   .course-content {
-    padding: 20px;
+    padding: 16px 12px;
+  }
+
+  .course-tabs {
+    top: 60px;
+    padding: 0 12px;
   }
 
   .learning-item {
@@ -1630,4 +1659,31 @@
   .auth-card {
     padding: 25px;
   }
+
+  .course-header-info h1 {
+    font-size: clamp(1.35rem, 6vw, 1.85rem);
+  }
+
+  .resource-page {
+    padding: 24px 12px 40px;
+  }
+}
+
+/* Проверка API */
+.api-check-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: clamp(16px, 4vw, 24px) 0;
+}
+
+.api-check-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.api-check-actions .btn {
+  flex: 1 1 auto;
+  min-width: min(100%, 140px);
 }

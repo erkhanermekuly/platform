@@ -345,6 +345,7 @@
     flex-direction: column;
     min-height: unset;
     max-width: 420px;
+    width: 100%;
   }
 
   .panelGradient {
@@ -353,5 +354,35 @@
 
   .panelLight {
     padding: 36px 24px 44px;
+  }
+
+  .titleContainer {
+    margin-top: 12%;
+  }
+
+  .form {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 16px 12px;
+  }
+
+  .titleContainer {
+    margin-top: 8%;
+  }
+
+  .ghost,
+  .ghostLink {
+    padding: 12px 20px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .input {
+    font-size: 16px;
   }
 }

@@ -7,8 +7,15 @@
 
 main {
   min-height: calc(100vh - 80px);
+  min-height: calc(100dvh - 80px);
   background: linear-gradient(180deg, #f4f6f8 0%, #eef1f4 55%, #e8ecf0 100%);
   padding: 0 var(--main-inline-pad);
+  padding-left: max(var(--main-inline-pad), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--main-inline-pad), env(safe-area-inset-right, 0px));
+  padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
+  min-width: 0;
+  /* Блокирует схлопывание margin с соседями (контент не «подтягивается» под шапку) */
+  display: flow-root;
 }
 
 /* Page containers */
@@ -40,11 +47,21 @@ main {
   :root {
     --main-inline-pad: 20px;
   }
+
+  main {
+    min-height: calc(100vh - 70px);
+    min-height: calc(100dvh - 70px);
+  }
 }
 
 @media (max-width: 480px) {
   :root {
     --main-inline-pad: 16px;
+  }
+
+  main {
+    min-height: calc(100vh - 60px);
+    min-height: calc(100dvh - 60px);
   }
 }
 
