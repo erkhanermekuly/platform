@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using server.DTOs;
+using server.Infrastructure;
 using server.Models;
 using System.Linq;
 using System.Security.Claims;
@@ -13,7 +15,7 @@ namespace server.Controllers;
 [Route("api/olympiads")]
 [ApiController]
 [Authorize]
-public class OlympiadsController(AppDbContext context) : ControllerBase
+public class OlympiadsController(AppDbContext context, IConfiguration configuration) : ControllerBase
 {
     private bool IsAdmin => User.IsInRole("admin");
 
@@ -192,6 +194,93 @@ public class OlympiadsController(AppDbContext context) : ControllerBase
         };
 
         return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    [HttpGet("{id:int}/documents/participation-certificate")]
+    public async Task<IActionResult> DownloadParticipationCertificate(int id)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var attempt = await context.OlympiadAttempts
+            .AsNoTracking()
+            .Include(a => a.Olympiad)
+            .Where(a => a.OlympiadId == id && a.AccountId == userId && !a.IsVoided)
+            .OrderByDescending(a => a.SubmittedAtUtc)
+            .FirstOrDefaultAsync();
+
+        if (attempt is null || attempt.Olympiad is null)
+        {
+            return NotFound(ApiResponse.Error("Нет сохранённой попытки по этой олимпиаде."));
+        }
+
+        var account = await context.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == userId);
+        var fullName = string.IsNullOrWhiteSpace(account?.Name)
+            ? User.FindFirstValue(ClaimTypes.Name) ?? "Участник"
+            : account!.Name;
+
+        var label = configuration["Certificate:PlatformLabel"];
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            label = "LearnHub";
+        }
+
+        var pdf = OlympiadDocumentsPdf.GenerateParticipationCertificate(
+            fullName,
+            attempt.Olympiad.Title,
+            attempt.SubmittedAtUtc,
+            label);
+
+        return File(pdf, "application/pdf", $"olympiad-{id}-certificate-participation.pdf");
+    }
+
+    [HttpGet("{id:int}/documents/diploma")]
+    public async Task<IActionResult> DownloadDiploma(int id)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var attempt = await context.OlympiadAttempts
+            .AsNoTracking()
+            .Include(a => a.Olympiad)
+            .Where(a => a.OlympiadId == id && a.AccountId == userId && !a.IsVoided)
+            .OrderByDescending(a => a.SubmittedAtUtc)
+            .FirstOrDefaultAsync();
+
+        if (attempt is null || attempt.Olympiad is null)
+        {
+            return NotFound(ApiResponse.Error("Нет сохранённой попытки по этой олимпиаде."));
+        }
+
+        var account = await context.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == userId);
+        var fullName = string.IsNullOrWhiteSpace(account?.Name)
+            ? User.FindFirstValue(ClaimTypes.Name) ?? "Участник"
+            : account!.Name;
+
+        var label = configuration["Certificate:PlatformLabel"];
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            label = "LearnHub";
+        }
+
+        var ratingScore = ComputeRatingScore(attempt.ScorePercent, attempt.BonusPoints);
+        var pdf = OlympiadDocumentsPdf.GenerateDiploma(
+            fullName,
+            attempt.Olympiad.Title,
+            attempt.CorrectCount,
+            attempt.TotalQuestions,
+            attempt.ScorePercent,
+            ratingScore,
+            attempt.SubmittedAtUtc,
+            label);
+
+        return File(pdf, "application/pdf", $"olympiad-{id}-diploma.pdf");
     }
 
     /// <summary>Рейтинг по олимпиаде: лучшие попытки участников (аннулированные не учитываются).</summary>

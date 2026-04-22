@@ -34,6 +34,7 @@ export default function OlympiadTestPage() {
   const [selected, setSelected] = useState({});
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [docBusy, setDocBusy] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,6 +129,22 @@ export default function OlympiadTestPage() {
     setSelected({});
   };
 
+  const downloadOlympiadDoc = async (kind) => {
+    if (!id || docBusy) return;
+    setDocBusy(kind);
+    try {
+      if (kind === 'cert') {
+        await olympiadsAPI.downloadParticipationCertificate(id);
+      } else {
+        await olympiadsAPI.downloadDiploma(id);
+      }
+    } catch (e) {
+      alert(e?.message || 'Не удалось скачать документ');
+    } finally {
+      setDocBusy(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="olym-root">
@@ -203,6 +220,26 @@ export default function OlympiadTestPage() {
             <p className="olym-desc" style={{ marginTop: 16 }}>
               Сдано: {formatDate(lockedAttempt.submittedAtUtc)}
             </p>
+            {!isAdmin && (
+              <div className="olym-doc-actions">
+                <button
+                  type="button"
+                  className="olym-btn olymp-btn--secondary"
+                  disabled={!!docBusy}
+                  onClick={() => downloadOlympiadDoc('cert')}
+                >
+                  {docBusy === 'cert' ? '…' : 'Сертификат об участии (PDF)'}
+                </button>
+                <button
+                  type="button"
+                  className="olym-btn olymp-btn--secondary"
+                  disabled={!!docBusy}
+                  onClick={() => downloadOlympiadDoc('diploma')}
+                >
+                  {docBusy === 'diploma' ? '…' : 'Диплом (PDF)'}
+                </button>
+              </div>
+            )}
           </div>
 
           <section className="olym-rating">
@@ -308,6 +345,26 @@ export default function OlympiadTestPage() {
               Попытка сохранена. Повторное прохождение этой олимпиады недоступно. Итоговый балл в рейтинге может быть
               скорректирован администратором (бонусы).
             </p>
+            {result.attemptId ? (
+              <div className="olym-doc-actions">
+                <button
+                  type="button"
+                  className="olym-btn olymp-btn--secondary"
+                  disabled={!!docBusy}
+                  onClick={() => downloadOlympiadDoc('cert')}
+                >
+                  {docBusy === 'cert' ? '…' : 'Сертификат об участии (PDF)'}
+                </button>
+                <button
+                  type="button"
+                  className="olym-btn olymp-btn--secondary"
+                  disabled={!!docBusy}
+                  onClick={() => downloadOlympiadDoc('diploma')}
+                >
+                  {docBusy === 'diploma' ? '…' : 'Диплом (PDF)'}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

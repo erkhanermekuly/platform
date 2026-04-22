@@ -447,6 +447,66 @@ export const olympiadsAPI = {
       body: JSON.stringify({ answers }),
     }),
 
+  downloadParticipationCertificate: async (olympiadId) => {
+    const token = getAuthToken();
+    if (!token) throw new Error('Войдите в систему');
+    const n = Number(olympiadId);
+    if (!Number.isFinite(n) || n < 1) throw new Error('Некорректная олимпиада');
+    const response = await fetch(buildUrl(`/olympiads/${n}/documents/participation-certificate`), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let payload = null;
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
+        payload = null;
+      }
+      throw new Error(parseErrorMessage(response, text, payload));
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `olympiad-${n}-certificate-participation.pdf`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  downloadDiploma: async (olympiadId) => {
+    const token = getAuthToken();
+    if (!token) throw new Error('Войдите в систему');
+    const n = Number(olympiadId);
+    if (!Number.isFinite(n) || n < 1) throw new Error('Некорректная олимпиада');
+    const response = await fetch(buildUrl(`/olympiads/${n}/documents/diploma`), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let payload = null;
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch {
+        payload = null;
+      }
+      throw new Error(parseErrorMessage(response, text, payload));
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `olympiad-${n}-diploma.pdf`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   getRating: async (id, take = 50) =>
     request(`/olympiads/${id}/rating`, { method: 'GET' }, { take }),
 

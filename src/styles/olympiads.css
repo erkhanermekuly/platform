@@ -266,6 +266,17 @@
   background: #e2e8f0;
 }
 
+.olym-btn--secondary {
+  color: #0f2744;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+}
+
+.olym-btn--secondary:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
 .olym-btn--danger {
   color: var(--olym-danger);
   background: var(--olym-danger-bg);
@@ -433,6 +444,13 @@
 .olym-result-panel--fail {
   background: linear-gradient(135deg, #fef2f2 0%, #ffffff 55%);
   border-color: #fecaca;
+}
+
+.olym-doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .olym-result-stats {
