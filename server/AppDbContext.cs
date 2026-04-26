@@ -29,6 +29,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<AdditionalMaterialModel> AdditionalMaterials { get; set; }
 
+    public DbSet<ConsultationModel> Consultations { get; set; }
+
     public DbSet<OlympiadModel> Olympiads { get; set; }
 
     public DbSet<OlympiadQuestionModel> OlympiadQuestions { get; set; }
@@ -152,6 +154,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AdditionalMaterialModel>()
             .Property(x => x.AttachedFileRelativePath)
             .HasMaxLength(512);
+
+        modelBuilder.Entity<ConsultationModel>()
+            .Property(x => x.CreatedAtUtc)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         modelBuilder.Entity<OlympiadModel>()
             .Property(x => x.CreatedAtUtc)

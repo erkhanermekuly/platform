@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { coursesAPI, reviewsAPI, learningAPI } from '../api/courseService';
 import { useAuth } from '../context/AuthContext';
 import { AppContext } from '../context/AppContext';
@@ -12,6 +12,40 @@ function isYoutubeUrl(url) {
   return s.includes('youtube.com') || s.includes('youtu.be');
 }
 
+function youtubeEmbedSrc(url) {
+  if (!url) return '';
+  const s = String(url).trim();
+  if (s.includes('/embed/')) return s;
+  try {
+    const u = new URL(s);
+    if (u.hostname === 'youtu.be' || u.hostname.endsWith('.youtu.be')) {
+      const id = u.pathname.replace(/^\//, '').split('/')[0];
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return s;
+}
+
+function syllabusRowState(lesson, selectedLessonId) {
+  if (!lesson.isUnlocked) return 'locked';
+  if (lesson.isCompleted) return 'completed';
+  if (lesson.id === selectedLessonId) return 'current';
+  return 'available';
+}
+
+function syllabusRowMeta(lesson, selectedLessonId) {
+  if (!lesson.isUnlocked) return 'Заблокировано';
+  if (lesson.isCompleted) return 'Завершено';
+  if (lesson.id === selectedLessonId) return 'Сейчас';
+  return 'Доступно';
+}
+
 function instructorInitials(name) {
   if (!name || typeof name !== 'string') return '—';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -19,6 +53,12 @@ function instructorInitials(name) {
   const a = parts[0][0] || '';
   const b = parts.length > 1 ? parts[parts.length - 1][0] : '';
   return (a + b).toUpperCase() || '?';
+}
+
+function formatCourseRating(r) {
+  const n = Number(r);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  return `${n.toFixed(1)}`;
 }
 
 export default function CourseDetailsPage() {
@@ -35,7 +75,6 @@ export default function CourseDetailsPage() {
   const [enrolled, setEnrolled] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, text: '' });
-  const [activeTab, setActiveTab] = useState('overview');
 
   const cid = Number(courseId);
   const inMyLearning = Number.isFinite(cid) && purchasedCourses.includes(cid);
@@ -159,13 +198,11 @@ export default function CourseDetailsPage() {
   }, [courseId]);
 
   useEffect(() => {
-    if (activeTab === 'curriculum' && isAuthenticated) {
-      loadCurriculum();
-    }
-  }, [activeTab, isAuthenticated, loadCurriculum]);
+    if (!isAuthenticated || !hasAccess) return;
+    loadCurriculum();
+  }, [isAuthenticated, hasAccess, loadCurriculum]);
 
   const openCurriculumAfterAccess = useCallback(async () => {
-    setActiveTab('curriculum');
     await loadCurriculum();
   }, [loadCurriculum]);
 
@@ -219,7 +256,7 @@ export default function CourseDetailsPage() {
 
       const updatedReviews = await reviewsAPI.getCourseReviews(courseId);
       setReviews(updatedReviews.data);
-    } catch (error) {
+    } catch {
       alert('Ошибка при добавлении отзыва');
     }
   };
@@ -252,7 +289,7 @@ export default function CourseDetailsPage() {
   };
 
   if (loading) {
-    return <div className="loading">Загрузка курса...</div>;
+    return <div className="loading crs-player-loading">Загрузка курса…</div>;
   }
 
   if (!course) {
@@ -265,185 +302,180 @@ export default function CourseDetailsPage() {
       ? curriculum.find((l) => l.id === selectedLessonId)
       : null;
 
+  const posterImage = course.image || 'https://via.placeholder.com/800x450?text=Course';
+  const lessonVideoUrl =
+    hasAccess && activeLesson?.isUnlocked && activeLesson?.videoUrl ? activeLesson.videoUrl : null;
+  const primaryVideoUrl = lessonVideoUrl || course.videoUrl || null;
+  const usingLessonVideo = Boolean(lessonVideoUrl);
+  const categoryTag = [course.level, course.category].filter(Boolean).join(' / ').toUpperCase();
+  const showLessonPanel = hasAccess && activeLesson;
+
+  const ctaLabel = !isAuthenticated
+    ? 'Войти и получить доступ к урокам'
+    : enrolling
+      ? 'Открываем доступ…'
+      : hasAccess
+        ? 'Продолжить обучение'
+        : Number(course.price) > 0
+          ? 'Купить и открыть 1-й урок'
+          : 'Начать бесплатно — 1-й урок';
+
   return (
-    <div className="course-details-page">
-      <div className="course-header-section">
-        <div className="course-header-content">
-          <img
-            src={course.image || 'https://via.placeholder.com/400x225?text=Course'}
-            alt={course.title}
-            className="course-hero-image"
-          />
-          <div className="course-header-info">
-            <div className="course-breadcrumb">
-              <span className="badge">{course.level}</span>
-              <span className="badge">{course.category}</span>
-            </div>
-            <h1>{course.title}</h1>
-            <p className="course-description">{course.description}</p>
+    <div className="course-details-page crs-player-page">
+      <div className="crs-player-shell">
+        <Link className="crs-player-back" to="/courses">
+          ← В каталог курсов
+        </Link>
 
-            <div className="course-meta-info">
-              <div className="meta-item">
-                <span className="label">Преподаватель</span>
-                <span className="value">👨‍🏫 {course.instructor?.name ?? '—'}</span>
-              </div>
-              <div className="meta-item">
-                <span className="label">Рейтинг</span>
-                <span className="value">
-                  ⭐ {course.rating} ({course.students?.toLocaleString?.() ?? 0} студентов)
-                </span>
-              </div>
-              <div className="meta-item">
-                <span className="label">Длительность</span>
-                <span className="value">⏱️ {course.duration ?? '—'}</span>
-              </div>
-              <div className="meta-item">
-                <span className="label">Цена</span>
-                <span className="value price">{course.price === 0 ? 'Бесплатно' : `${course.price} ₸`}</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-              <button
-                type="button"
-                onClick={handleGetAccess}
-                disabled={enrolling}
-                className={`btn ${hasAccess ? 'btn-success' : 'btn-primary'} btn-large`}
-              >
-                {!isAuthenticated
-                  ? 'Войти и получить доступ к урокам'
-                  : enrolling
-                    ? 'Открываем доступ…'
-                    : hasAccess
-                      ? 'К программе и урокам'
-                      : Number(course.price) > 0
-                        ? 'Купить и открыть 1-й урок'
-                        : 'Начать бесплатно — 1-й урок'}
-              </button>
-              {isAuthenticated && hasAccess && courseProgressFromApi === 100 && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-large"
-                  disabled={certBusy}
-                  onClick={handleDownloadCertificate}
-                >
-                  {certBusy ? '…' : 'Скачать сертификат (PDF)'}
-                </button>
-              )}
-            </div>
-            {isAuthenticated && hasAccess && (
-              <p className="curriculum-hint" style={{ marginTop: 12 }}>
-                Доступ открыт: в программе доступен 1-й урок; остальные — после завершения предыдущего.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="course-tabs">
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          Обзор
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'curriculum' ? 'active' : ''}`}
-          onClick={() => setActiveTab('curriculum')}
-        >
-          Программа
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
-          onClick={() => setActiveTab('reviews')}
-        >
-          Отзывы
-        </button>
-      </div>
-
-      <div className="course-content">
-        {activeTab === 'overview' && (
-          <section className="tab-content">
-            <h2>О курсе</h2>
-            <p>{course.description}</p>
-
-            {course.videoUrl && (
-              <div style={{ margin: '24px 0' }}>
-                <h3>Вводное видео</h3>
-                {isYoutubeUrl(course.videoUrl) ? (
-                  <iframe
-                    title="Превью курса"
-                    src={course.videoUrl}
-                    style={{
-                      width: '100%',
-                      maxWidth: 720,
-                      aspectRatio: '16/9',
-                      border: 0,
-                      borderRadius: 12,
-                    }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+        <div className="crs-player-grid">
+          <main className="crs-player-main">
+            <section className="crs-player-video-card" aria-label="Видео урока">
+              <div className="crs-player-video-stage">
+                {primaryVideoUrl ? (
+                  isYoutubeUrl(primaryVideoUrl) ? (
+                    <iframe
+                      title={activeLesson?.title || course.title}
+                      className="crs-player-iframe"
+                      src={youtubeEmbedSrc(primaryVideoUrl)}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video
+                      controls
+                      className="crs-player-video"
+                      src={primaryVideoUrl}
+                      poster={posterImage}
+                      onEnded={() => {
+                        if (
+                          usingLessonVideo &&
+                          activeLesson &&
+                          !activeLesson.isCompleted
+                        ) {
+                          markLessonComplete(activeLesson.id);
+                        }
+                      }}
+                    />
+                  )
                 ) : (
-                  <video
-                    controls
-                    src={course.videoUrl}
-                    style={{ width: '100%', maxWidth: 720, borderRadius: 12 }}
-                  />
+                  <div
+                    className="crs-player-poster"
+                    style={{ backgroundImage: `url(${posterImage})` }}
+                  >
+                    {!hasAccess ? (
+                      <button
+                        type="button"
+                        className="crs-player-poster-play"
+                        onClick={handleGetAccess}
+                        aria-label={ctaLabel}
+                      >
+                        <span className="crs-player-poster-play-inner" aria-hidden>
+                          ▶
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="crs-player-poster-fallback">
+                        <p>Видео для этого урока пока не добавлено.</p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
 
-            <h3>Об инструкторе</h3>
-            <div className="instructor-card">
-              <div className="instructor-card__initials" aria-hidden>
-                {instructorInitials(course.instructor?.name)}
-              </div>
-              <div>
-                <h4>{course.instructor?.name ?? '—'}</h4>
-                <p>{course.instructor?.bio ?? ''}</p>
-              </div>
-            </div>
-          </section>
-        )}
+              {showLessonPanel && (
+                <div className="crs-player-lesson-below">
+                  <h2 className="crs-player-lesson-title">{activeLesson.title}</h2>
+                  {activeLesson.description ? (
+                    <p className="crs-player-lesson-desc">{activeLesson.description}</p>
+                  ) : null}
 
-        {activeTab === 'curriculum' && (
-          <section className="tab-content">
-            <h2>Программа курса</h2>
+                  {activeLesson.videoUrl && activeLesson.isUnlocked && isYoutubeUrl(activeLesson.videoUrl) && (
+                    <>
+                      <p className="crs-player-video-note">
+                        После просмотра ролика нажмите кнопку ниже, чтобы открыть следующий урок.
+                      </p>
+                      {!activeLesson.isCompleted && (
+                        <button
+                          type="button"
+                          className="crs-player-btn crs-player-btn--primary"
+                          disabled={completing}
+                          onClick={() => markLessonComplete(activeLesson.id)}
+                        >
+                          {completing ? '…' : 'Я просмотрел урок — отметить завершённым'}
+                        </button>
+                      )}
+                    </>
+                  )}
 
-            {!isAuthenticated && (
-              <p className="curriculum-hint">
-                Войдите в аккаунт. Для бесплатного курса нажмите «Начать бесплатно»; для платного — оплатите на
-                странице курса — после этого сразу откроется первый урок.
-              </p>
-            )}
+                  {activeLesson.isUnlocked &&
+                    activeLesson.materials &&
+                    activeLesson.materials.length > 0 && (
+                      <div className="crs-player-materials">
+                        <h3 className="crs-player-materials-title">Материалы</h3>
+                        <ul>
+                          {activeLesson.materials.map((m) => (
+                            <li key={m.id}>
+                              <a href={m.url} target="_blank" rel="noreferrer">
+                                {m.name}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
-            {isAuthenticated && curriculumError && !hasAccess && (
-              <p className="curriculum-hint">
-                Ещё нет доступа к урокам: для платного курса завершите оплату; для бесплатного — нажмите «Начать
-                бесплатно» в шапке страницы. Дальше уроки открываются по порядку.
-              </p>
-            )}
+                  {activeLesson.isUnlocked && !activeLesson.videoUrl && !activeLesson.isCompleted && (
+                    <button
+                      type="button"
+                      className="crs-player-btn crs-player-btn--secondary"
+                      disabled={completing}
+                      onClick={() => markLessonComplete(activeLesson.id)}
+                    >
+                      Завершить урок (без видео)
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
 
-            {isAuthenticated && hasAccess && curriculum && curriculum.length === 0 && (
-              <p>Для этого курса ещё не добавлены уроки. Загляните позже.</p>
-            )}
+            <section className="crs-syllabus" id="crs-syllabus" aria-labelledby="crs-syllabus-heading">
+              <h2 id="crs-syllabus-heading" className="crs-syllabus-heading">
+                Программа курса
+              </h2>
 
-            {isAuthenticated && hasAccess && curriculum && curriculum.length > 0 && (
-              <div className="curriculum-layout">
-                <div className="curriculum-sidebar">
-                  <h3 className="curriculum-sidebar-title">Уроки</h3>
-                  <ul className="curriculum-lesson-list">
-                    {curriculum.map((lesson, idx) => (
+              {!isAuthenticated && (
+                <p className="crs-syllabus-hint">
+                  Войдите в аккаунт. Для бесплатного курса нажмите «Начать бесплатно»; для платного — оплатите в
+                  карточке справа — после этого откроется первый урок.
+                </p>
+              )}
+
+              {isAuthenticated && curriculumError && !hasAccess && (
+                <p className="crs-syllabus-hint">
+                  Ещё нет доступа к урокам: для платного курса завершите оплату; для бесплатного — нажмите кнопку в
+                  боковой панели. Дальше уроки открываются по порядку.
+                </p>
+              )}
+
+              {isAuthenticated && hasAccess && curriculumError && (
+                <p className="crs-syllabus-hint crs-syllabus-hint--warn">
+                  Не удалось загрузить программу уроков. Обновите страницу или попробуйте позже.
+                </p>
+              )}
+
+              {isAuthenticated && hasAccess && curriculum && curriculum.length === 0 && (
+                <p className="crs-syllabus-empty">Для этого курса ещё не добавлены уроки. Загляните позже.</p>
+              )}
+
+              {isAuthenticated && hasAccess && curriculum && curriculum.length > 0 && (
+                <ul className="crs-syllabus-list">
+                  {curriculum.map((lesson, idx) => {
+                    const rowState = syllabusRowState(lesson, selectedLessonId);
+                    return (
                       <li key={lesson.id}>
                         <button
                           type="button"
-                          className={`curriculum-lesson-btn ${selectedLessonId === lesson.id ? 'active' : ''} ${
-                            !lesson.isUnlocked ? 'locked' : ''
-                          }`}
+                          className={`crs-syllabus-row crs-syllabus-row--${rowState}`}
                           disabled={!lesson.isUnlocked}
                           onClick={() => {
                             if (!lesson.isUnlocked) return;
@@ -455,190 +487,210 @@ export default function CourseDetailsPage() {
                             });
                           }}
                         >
-                          <span className="lesson-num">{idx + 1}.</span>
-                          <span className="lesson-ti">{lesson.title}</span>
-                          {!lesson.isUnlocked && <span className="lock-tag">🔒</span>}
-                          {lesson.isCompleted && <span className="done-tag">✓</span>}
+                          <span className={`crs-syllabus-icon crs-syllabus-icon--${rowState}`} aria-hidden>
+                            {rowState === 'locked' ? '🔒' : rowState === 'completed' ? '✓' : '▶'}
+                          </span>
+                          <span className="crs-syllabus-text">
+                            <span className="crs-syllabus-name">
+                              {idx + 1}. {lesson.title}
+                            </span>
+                            <span className={`crs-syllabus-meta crs-syllabus-meta--${rowState}`}>
+                              {syllabusRowMeta(lesson, selectedLessonId)}
+                            </span>
+                          </span>
                         </button>
                       </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="curriculum-main">
-                  {activeLesson && (
-                    <>
-                      <h3>{activeLesson.title}</h3>
-                      <p className="lesson-desc">{activeLesson.description}</p>
+                    );
+                  })}
+                </ul>
+              )}
 
-                      {activeLesson.videoUrl && activeLesson.isUnlocked && (
-                        <div className="lesson-video-wrap">
-                          {isYoutubeUrl(activeLesson.videoUrl) ? (
-                            <>
-                              <iframe
-                                title={activeLesson.title}
-                                src={activeLesson.videoUrl}
-                                style={{
-                                  width: '100%',
-                                  maxWidth: 720,
-                                  aspectRatio: '16/9',
-                                  border: 0,
-                                  borderRadius: 12,
-                                }}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                              />
-                              <p className="video-note">
-                                После просмотра ролика нажмите кнопку ниже, чтобы открыть следующий урок.
-                              </p>
-                              {!activeLesson.isCompleted && (
-                                <button
-                                  type="button"
-                                  className="btn btn-primary"
-                                  disabled={completing}
-                                  onClick={() => markLessonComplete(activeLesson.id)}
-                                >
-                                  {completing ? '…' : 'Я просмотрел урок — отметить завершённым'}
-                                </button>
-                              )}
-                            </>
+              {hasAccess && isAuthenticated && curriculum === null && !curriculumError && (
+                <p className="crs-syllabus-empty">Загрузка программы…</p>
+              )}
+
+              {!hasAccess && outlineLessons && (
+                <>
+                  <p className="crs-syllabus-outline-lead">
+                    План курса (после покупки или старта бесплатного курса — доступ с 1-го урока по порядку):
+                  </p>
+                  <ul className="crs-syllabus-list crs-syllabus-list--outline">
+                  {outlineLessons.map((lesson, index) => (
+                    <li key={lesson.id}>
+                      <div className="crs-syllabus-row crs-syllabus-row--locked crs-syllabus-row--static">
+                        <span className="crs-syllabus-icon crs-syllabus-icon--locked" aria-hidden>
+                          🔒
+                        </span>
+                        <span className="crs-syllabus-text">
+                          <span className="crs-syllabus-name">
+                            {index + 1}. {lesson.title}
+                          </span>
+                          {lesson.description ? (
+                            <span className="crs-syllabus-meta crs-syllabus-meta--locked">{lesson.description}</span>
                           ) : (
-                            <video
-                              controls
-                              src={activeLesson.videoUrl}
-                              style={{ width: '100%', maxWidth: 720, borderRadius: 12 }}
-                              onEnded={() => {
-                                if (!activeLesson.isCompleted) {
-                                  markLessonComplete(activeLesson.id);
-                                }
-                              }}
-                            />
+                            <span className="crs-syllabus-meta crs-syllabus-meta--locked">После записи</span>
                           )}
-                        </div>
-                      )}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                  </ul>
+                </>
+              )}
 
-                      {activeLesson.isUnlocked &&
-                        activeLesson.materials &&
-                        activeLesson.materials.length > 0 && (
-                          <div className="lesson-materials">
-                            <h4>Материалы</h4>
-                            <ul>
-                              {activeLesson.materials.map((m) => (
-                                <li key={m.id}>
-                                  <a href={m.url} target="_blank" rel="noreferrer">
-                                    {m.name}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+              {!hasAccess && !outlineLessons && course.modules && (
+                <ul className="crs-syllabus-list crs-syllabus-list--outline">
+                  {course.modules.map((module, index) => (
+                    <li key={module.id}>
+                      <div className="crs-syllabus-row crs-syllabus-row--locked crs-syllabus-row--static">
+                        <span className="crs-syllabus-icon crs-syllabus-icon--locked" aria-hidden>
+                          🔒
+                        </span>
+                        <span className="crs-syllabus-text">
+                          <span className="crs-syllabus-name">
+                            {index + 1}. {module.title}
+                          </span>
+                          <span className="crs-syllabus-meta crs-syllabus-meta--locked">
+                            {module.lessons} уроков • {module.duration}
+                          </span>
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
-                      {activeLesson.isUnlocked && !activeLesson.videoUrl && !activeLesson.isCompleted && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          disabled={completing}
-                          onClick={() => markLessonComplete(activeLesson.id)}
-                        >
-                          Завершить урок (без видео)
-                        </button>
-                      )}
-                    </>
-                  )}
+            {course.instructor?.bio ? (
+              <section className="crs-player-instructor-bio" aria-labelledby="crs-instructor-heading">
+                <h2 id="crs-instructor-heading" className="crs-syllabus-heading">
+                  Об инструкторе
+                </h2>
+                <div className="crs-player-instructor-card">
+                  <div className="crs-player-instructor-card-av" aria-hidden>
+                    {instructorInitials(course.instructor?.name)}
+                  </div>
+                  <div>
+                    <h3 className="crs-player-instructor-card-name">{course.instructor?.name ?? '—'}</h3>
+                    <p>{course.instructor.bio}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              </section>
+            ) : null}
 
-            {!hasAccess && outlineLessons && (
-              <div className="modules-list">
-                <p style={{ marginBottom: 16, color: '#6b7280' }}>
-                  План курса (после покупки или старта бесплатного курса — доступ с 1-го урока по порядку):
+            <section className="crs-player-reviews" id="reviews" aria-labelledby="crs-reviews-heading">
+              <h2 id="crs-reviews-heading" className="crs-syllabus-heading">
+                Отзывы студентов
+              </h2>
+
+              {isAuthenticated && (
+                <div className="review-form crs-player-review-form">
+                  <h3>Оставить отзыв</h3>
+                  <form onSubmit={handleAddReview}>
+                    <div className="form-group">
+                      <label htmlFor="review-rating">Рейтинг</label>
+                      <select
+                        id="review-rating"
+                        value={newReview.rating}
+                        onChange={(e) => setNewReview({ ...newReview, rating: Number(e.target.value) })}
+                      >
+                        <option value="5">⭐⭐⭐⭐⭐ Отличный курс</option>
+                        <option value="4">⭐⭐⭐⭐ Хороший курс</option>
+                        <option value="3">⭐⭐⭐ Нормальный курс</option>
+                        <option value="2">⭐⭐ Плохой курс</option>
+                        <option value="1">⭐ Очень плохой курс</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="review-text">Ваш отзыв</label>
+                      <textarea
+                        id="review-text"
+                        value={newReview.text}
+                        onChange={(e) => setNewReview({ ...newReview, text: e.target.value })}
+                        placeholder="Поделитесь своим мнением о курсе..."
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="crs-player-btn crs-player-btn--primary">
+                      Отправить отзыв
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              <div className="reviews-list">
+                {reviews.map((review) => (
+                  <div key={review.id} className="review-item">
+                    <div className="review-header">
+                      <span className="reviewer-name">{review.user}</span>
+                      <span className="review-rating">{'⭐'.repeat(review.rating)}</span>
+                    </div>
+                    <p className="review-text">{review.text}</p>
+                    <span className="review-date">{review.date}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </main>
+
+          <aside className="crs-player-aside">
+            <div className="crs-player-aside-card">
+              {categoryTag ? <span className="crs-player-cat-tag">{categoryTag}</span> : null}
+              <h1 className="crs-player-aside-title">{course.title}</h1>
+              <div className="crs-player-instructor-row">
+                <span className="crs-player-instructor-av" aria-hidden>
+                  {instructorInitials(course.instructor?.name)}
+                </span>
+                <span className="crs-player-instructor-name">{course.instructor?.name ?? '—'}</span>
+              </div>
+              <p className="crs-player-aside-desc">{course.description}</p>
+
+              <button
+                type="button"
+                onClick={handleGetAccess}
+                disabled={enrolling}
+                className="crs-player-primary-cta"
+              >
+                <span className="crs-player-primary-cta-icon" aria-hidden>
+                  🎓
+                </span>
+                {ctaLabel}
+              </button>
+
+              {isAuthenticated && hasAccess && courseProgressFromApi === 100 && (
+                <button
+                  type="button"
+                  className="crs-player-btn crs-player-btn--ghost"
+                  disabled={certBusy}
+                  onClick={handleDownloadCertificate}
+                >
+                  {certBusy ? '…' : 'Скачать сертификат (PDF)'}
+                </button>
+              )}
+
+              {!hasAccess && (
+                <p className="crs-player-aside-price">
+                  {Number(course.price) <= 0 ? 'Бесплатно' : `${course.price.toLocaleString('ru-RU')} ₸`}
                 </p>
-                {outlineLessons.map((lesson, index) => (
-                  <div key={lesson.id} className="module">
-                    <div className="module-header">
-                      <h3>
-                        {index + 1}. {lesson.title}
-                      </h3>
-                    </div>
-                    {lesson.description && <p className="lesson-desc-preview">{lesson.description}</p>}
-                  </div>
-                ))}
+              )}
+
+              {isAuthenticated && hasAccess && (
+                <p className="crs-player-aside-hint">
+                  Доступ открыт: первый урок в программе; остальные — после завершения предыдущего.
+                </p>
+              )}
+
+              <div className="crs-player-aside-stats">
+                <span className="crs-player-stat">
+                  <span aria-hidden>★</span> {formatCourseRating(course.rating)} рейтинг
+                </span>
+                <span className="crs-player-stat">
+                  <span aria-hidden>🕐</span> {course.duration ?? '—'} всего
+                </span>
               </div>
-            )}
-
-            {!hasAccess && !outlineLessons && course.modules && (
-              <div className="modules-list">
-                {course.modules.map((module, index) => (
-                  <div key={module.id} className="module">
-                    <div className="module-header">
-                      <h3>
-                        {index + 1}. {module.title}
-                      </h3>
-                      <span className="module-info">
-                        {module.lessons} уроков • {module.duration}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {activeTab === 'reviews' && (
-          <section className="tab-content">
-            <h2>Отзывы студентов</h2>
-
-            {isAuthenticated && (
-              <div className="review-form">
-                <h3>Оставить отзыв</h3>
-                <form onSubmit={handleAddReview}>
-                  <div className="form-group">
-                    <label htmlFor="review-rating">Рейтинг</label>
-                    <select
-                      id="review-rating"
-                      value={newReview.rating}
-                      onChange={(e) => setNewReview({ ...newReview, rating: Number(e.target.value) })}
-                    >
-                      <option value="5">⭐⭐⭐⭐⭐ Отличный курс</option>
-                      <option value="4">⭐⭐⭐⭐ Хороший курс</option>
-                      <option value="3">⭐⭐⭐ Нормальный курс</option>
-                      <option value="2">⭐⭐ Плохой курс</option>
-                      <option value="1">⭐ Очень плохой курс</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="review-text">Ваш отзыв</label>
-                    <textarea
-                      id="review-text"
-                      value={newReview.text}
-                      onChange={(e) => setNewReview({ ...newReview, text: e.target.value })}
-                      placeholder="Поделитесь своим мнением о курсе..."
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary">
-                    Отправить отзыв
-                  </button>
-                </form>
-              </div>
-            )}
-
-            <div className="reviews-list">
-              {reviews.map((review) => (
-                <div key={review.id} className="review-item">
-                  <div className="review-header">
-                    <span className="reviewer-name">{review.user}</span>
-                    <span className="review-rating">{'⭐'.repeat(review.rating)}</span>
-                  </div>
-                  <p className="review-text">{review.text}</p>
-                  <span className="review-date">{review.date}</span>
-                </div>
-              ))}
             </div>
-          </section>
-        )}
+          </aside>
+        </div>
       </div>
 
       <PaymentModal

@@ -17,10 +17,14 @@ function formatDate(value) {
   });
 }
 
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 export default function OlympiadTestPage() {
   const { id } = useParams();
   const { userRole } = useAuth();
   const isAdmin = userRole === 'admin';
+
+  const [qIndex, setQIndex] = useState(0);
 
   const [locked, setLocked] = useState(false);
   const [olympiadMeta, setOlympiadMeta] = useState(null);
@@ -81,6 +85,10 @@ export default function OlympiadTestPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setQIndex(0);
+  }, [data]);
 
   const answeredCount = useMemo(() => {
     if (!data?.questions?.length) return 0;
@@ -283,6 +291,10 @@ export default function OlympiadTestPage() {
 
   if (!data) return null;
 
+  const nQuestions = data.questions?.length ?? 0;
+  const safeQIndex = nQuestions > 0 ? Math.min(Math.max(0, qIndex), nQuestions - 1) : 0;
+  const currentQuestion = nQuestions > 0 ? data.questions[safeQIndex] : null;
+
   const correctById = result
     ? Object.fromEntries(result.results.map((r) => [r.questionId, new Set(r.correctAnswerIds)]))
     : {};
@@ -292,10 +304,12 @@ export default function OlympiadTestPage() {
 
   const passNow = result && result.scorePercent >= 60;
 
+  const useTestLayout = nQuestions > 0 && !result;
+
   return (
-    <div className="olym-root">
-      <div className="olym-shell">
-        <Link className="olym-back" to="/olympiads">
+    <div className={`olym-root${useTestLayout ? ' olymp-test-exp' : ''}`}>
+      <div className={`olym-shell${useTestLayout ? ' olymp-test-shell' : ''}`}>
+        <Link className={`olym-back${useTestLayout ? ' olymp-test-back' : ''}`} to="/olympiads">
           ← К списку олимпиад
         </Link>
 
@@ -306,17 +320,29 @@ export default function OlympiadTestPage() {
           </div>
         )}
 
-        <header className="olym-hero">
-          <div className="olym-hero-inner">
-            <div className="olym-kicker">Олимпиада</div>
-            <h1 className="olym-title">{data.title}</h1>
-            <p className="olym-desc">{data.description}</p>
-            <div className="olym-hero-meta">
-              <span className="olym-pill olymp-pill--muted">Вопросов: {data.questions.length}</span>
-              <span className="olym-pill olymp-pill--accent">Одна официальная попытка</span>
+        {useTestLayout ? (
+          <div className="olym-test-pagehead">
+            <p className="olym-test-pagehead-kicker">Олимпиада</p>
+            <h1 className="olym-test-pagehead-title">{data.title}</h1>
+            {data.description ? <p className="olym-test-pagehead-desc">{data.description}</p> : null}
+            <div className="olym-test-pagehead-pills">
+              <span className="olym-test-pill">Вопросов: {nQuestions}</span>
+              <span className="olym-test-pill olymp-test-pill--accent">Одна официальная попытка</span>
             </div>
           </div>
-        </header>
+        ) : (
+          <header className="olym-hero">
+            <div className="olym-hero-inner">
+              <div className="olym-kicker">Олимпиада</div>
+              <h1 className="olym-title">{data.title}</h1>
+              <p className="olym-desc">{data.description}</p>
+              <div className="olym-hero-meta">
+                <span className="olym-pill olymp-pill--muted">Вопросов: {data.questions.length}</span>
+                <span className="olym-pill olymp-pill--accent">Одна официальная попытка</span>
+              </div>
+            </div>
+          </header>
+        )}
 
         {result?.previewOnly ? (
           <div className="olym-banner">Предпросмотр: результат не записан в базу участников.</div>
@@ -368,66 +394,173 @@ export default function OlympiadTestPage() {
           </div>
         ) : null}
 
-        {data.questions.length > 0 && !result && (
-          <div className="olym-progress-wrap">
-            <div className="olym-progress-label">
-              <span>Прогресс ответов</span>
-              <span>
-                {answeredCount} / {data.questions.length}
-              </span>
+        {useTestLayout && currentQuestion ? (
+          <>
+            <div className="olym-test-status">
+              <div className="olym-test-status-left">
+                <span className="olym-test-olym-kicker">Олимпиада</span>
+                <span className="olym-test-olym-name">{data.title}</span>
+              </div>
+              <div className="olym-test-status-mid">
+                <div className="olym-test-status-mid-row">
+                  <span className="olym-test-q-pos">
+                    Вопрос {safeQIndex + 1} из {nQuestions}
+                  </span>
+                  <span className="olym-test-q-answered">
+                    Отвечено: {answeredCount} / {nQuestions}
+                  </span>
+                </div>
+                <div className="olym-test-progress-track" aria-hidden>
+                  <div className="olym-test-progress-fill" style={{ width: `${progressPct}%` }} />
+                </div>
+              </div>
+              <div className="olym-test-timer-pill" title="Ограничение по времени не задано">
+                <span aria-hidden>🕐</span>
+                <span>Без лимита</span>
+              </div>
             </div>
-            <div className="olym-progress-track">
-              <div className="olym-progress-fill" style={{ width: `${progressPct}%` }} />
+
+            <div className="olym-test-main-card">
+              <div className="olym-test-tags">
+                <span className="olym-test-tag olymp-test-tag--warm">Логика и практика</span>
+                <span className="olym-test-tag olymp-test-tag--muted">Вопрос {safeQIndex + 1}</span>
+              </div>
+              <h2 className="olym-test-q-title">{currentQuestion.text}</h2>
+              <div className="olym-test-opts">
+                {currentQuestion.answers.map((a, ai) => {
+                  const isSelected = selected[currentQuestion.id]?.has(a.id) ?? false;
+                  const letter = LETTERS[ai] ?? '?';
+                  const inputId = `olym-a-${currentQuestion.id}-${a.id}`;
+                  let optCls = 'olym-test-opt';
+                  if (isSelected) optCls += ' olymp-test-opt--sel';
+                  return (
+                    <label key={a.id} htmlFor={inputId} className={optCls}>
+                      <input
+                        id={inputId}
+                        className="olym-test-check"
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleAnswer(currentQuestion.id, a.id)}
+                      />
+                      <span className="olym-test-opt-letter" aria-hidden>
+                        {letter}
+                      </span>
+                      <span className="olym-test-opt-text">{a.text}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+
+            <footer className="olym-test-footer">
+              <button
+                type="button"
+                className="olym-test-footer-prev"
+                disabled={safeQIndex <= 0}
+                onClick={() => setQIndex((i) => Math.max(0, i - 1))}
+              >
+                ← Назад
+              </button>
+              <div className="olym-test-dots" role="tablist" aria-label="Номер вопроса">
+                {data.questions.map((qDot, i) => (
+                  <button
+                    key={qDot.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === safeQIndex}
+                    className={`olym-test-dot${i === safeQIndex ? ' is-active' : ''}`}
+                    onClick={() => setQIndex(i)}
+                    aria-label={`Вопрос ${i + 1}`}
+                  />
+                ))}
+              </div>
+              {safeQIndex >= nQuestions - 1 ? (
+                <button
+                  type="button"
+                  className="olym-test-footer-next olymp-test-footer-next--submit"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Проверяем…' : 'Завершить →'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="olym-test-footer-next"
+                  onClick={() => setQIndex((i) => Math.min(nQuestions - 1, i + 1))}
+                >
+                  Далее →
+                </button>
+              )}
+            </footer>
+          </>
+        ) : null}
 
         {data.questions.length === 0 && <p className="olym-empty">В этой олимпиаде пока нет вопросов.</p>}
 
-        <div>
-          {data.questions.map((q, idx) => {
-            const known = result !== null;
-            const ok = isCorrectByQuestion[q.id];
-            const cardClass = known ? (ok ? 'olym-q-card olymp-q-card--ok' : 'olym-q-card olymp-q-card--bad') : 'olym-q-card';
-            return (
-              <div key={q.id} className={cardClass}>
-                <div className="olym-q-num">
-                  Вопрос {idx + 1} из {data.questions.length}
+        {(result || !useTestLayout) && data.questions.length > 0 ? (
+          <div className={result ? 'olym-test-results-block' : ''}>
+            {data.questions.map((q, idx) => {
+              const ok = isCorrectByQuestion[q.id];
+              const cardClass = result
+                ? ok
+                  ? 'olym-test-main-card olymp-test-main-card--ok'
+                  : 'olym-test-main-card olymp-test-main-card--bad'
+                : 'olym-test-main-card';
+              return (
+                <div key={q.id} className={cardClass}>
+                  <div className="olym-test-tags">
+                    <span className="olym-test-tag olymp-test-tag--warm">Логика и практика</span>
+                    <span className="olym-test-tag olymp-test-tag--muted">Вопрос {idx + 1}</span>
+                  </div>
+                  <h2 className="olym-test-q-title">{q.text}</h2>
+                  <div className="olym-test-opts">
+                    {q.answers.map((a, ai) => {
+                      const isSelected = selected[q.id]?.has(a.id) ?? false;
+                      const isCorrectAnswer = result && correctById[q.id]?.has(a.id);
+                      const showCorrect = result && isCorrectAnswer;
+                      const showWrongSelected = result && isSelected && !isCorrectAnswer;
+                      const letter = LETTERS[ai] ?? '?';
+                      const inputId = `olym-ar-${q.id}-${a.id}`;
+                      let optCls = 'olym-test-opt';
+                      if (showCorrect) optCls += ' olymp-test-opt--correct';
+                      else if (showWrongSelected) optCls += ' olymp-test-opt--wrong';
+                      else if (isSelected) optCls += ' olymp-test-opt--sel';
+                      return (
+                        <label key={a.id} htmlFor={inputId} className={optCls}>
+                          <input
+                            id={inputId}
+                            className="olym-test-check"
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={!!result}
+                            onChange={() => toggleAnswer(q.id, a.id)}
+                          />
+                          <span className="olym-test-opt-letter" aria-hidden>
+                            {letter}
+                          </span>
+                          <span className="olym-test-opt-text">{a.text}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-                <h2 className="olym-q-text">{q.text}</h2>
-                <div>
-                  {q.answers.map((a) => {
-                    const isSelected = selected[q.id]?.has(a.id) ?? false;
-                    const isCorrectAnswer = result && correctById[q.id]?.has(a.id);
-                    const showCorrect = result && isCorrectAnswer;
-                    const showWrongSelected = result && isSelected && !isCorrectAnswer;
-                    let cls = 'olym-answer';
-                    if (showCorrect) cls += ' olymp-answer--correct';
-                    else if (showWrongSelected) cls += ' olymp-answer--wrong';
-                    else if (isSelected) cls += ' olymp-answer--sel';
-                    return (
-                      <label key={a.id} className={cls}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          disabled={!!result}
-                          onChange={() => toggleAnswer(q.id, a.id)}
-                        />
-                        <span>{a.text}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : null}
 
-        {data.questions.length > 0 && !result && (
-          <button type="button" className="olym-btn olymp-btn--primary" style={{ width: '100%', marginTop: 8 }} onClick={handleSubmit} disabled={submitting}>
+        {data.questions.length > 0 && !result && !useTestLayout ? (
+          <button
+            type="button"
+            className="olym-btn olymp-btn--primary"
+            style={{ width: '100%', marginTop: 8 }}
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
             {submitting ? 'Проверяем…' : 'Завершить и отправить'}
           </button>
-        )}
+        ) : null}
 
         {isAdmin && result ? (
           <button type="button" className="olym-btn olymp-btn--ghost" style={{ marginTop: 14 }} onClick={resetLocalPreview}>

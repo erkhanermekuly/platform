@@ -1,11 +1,27 @@
-import { useContext, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import CourseCard from '../components/CourseCard/CourseCard';
 import PaymentModal from '../components/PaymentModal/PaymentModal';
 import AdminPanel from '../components/AdminPanel/AdminPanel';
 import '../styles/pages.css';
+
+function categoryTone(category) {
+  const s = (category || '').toLowerCase();
+  if (/матем|math|алгебр|геометр|числ|арифмет|логик|puzzle/.test(s)) return 'amber';
+  if (/физик|хими|наук|science|bio|космос|природ|естеств/.test(s)) return 'green';
+  if (/искусств|творч|art|рисован|дизайн|музык/.test(s)) return 'pink';
+  if (/програм|код|code|it|айти|алгоритм|byte/.test(s)) return 'violet';
+  if (/язык|англ|лингв|литератур|чтен|письм/.test(s)) return 'sky';
+  if (/истор|обществ|географ|право/.test(s)) return 'orange';
+  return 'slate';
+}
+
+function formatRating(r) {
+  const n = Number(r);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  return `${n.toFixed(1)}/5`;
+}
 
 export default function CoursesPage() {
   const {
@@ -22,10 +38,8 @@ export default function CoursesPage() {
   const location = useLocation();
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-
-  if (userRole === 'admin' && location.pathname === '/courses') {
-    return <Navigate to="/admin/courses" replace />;
-  }
+  const [search, setSearch] = useState('');
+  const [categoryKey, setCategoryKey] = useState('all');
 
   const handleUnlock = (course) => {
     setSelectedCourse(course);
@@ -35,6 +49,47 @@ export default function CoursesPage() {
   const handleView = (course) => {
     navigate(`/course/${course.id}`);
   };
+
+  const categoryChips = useMemo(() => {
+    const seen = new Map();
+    for (const c of courses) {
+      const raw = (c.category || '').trim();
+      if (!raw) continue;
+      const key = raw.toLowerCase();
+      if (!seen.has(key)) seen.set(key, raw);
+    }
+    const sorted = [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ru'));
+    return [{ key: 'all', label: 'Все курсы' }, ...sorted.map(([key, label]) => ({ key, label }))];
+  }, [courses]);
+
+  const filteredCourses = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return courses.filter((c) => {
+      if (categoryKey !== 'all') {
+        const cat = (c.category || '').trim().toLowerCase();
+        if (cat !== categoryKey) return false;
+      }
+      if (!q) return true;
+      const hay = `${c.title || ''} ${c.description || ''}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [courses, search, categoryKey]);
+
+  const featuredPrimary = filteredCourses[0];
+  const featuredSecondary = filteredCourses[1];
+  const catalogRest = filteredCourses.slice(2);
+
+  const openCourse = (course) => {
+    if (!course) return;
+    const owned = purchasedCourses.includes(course.id);
+    const needsPayment = course.isLocked && !owned;
+    if (needsPayment) handleUnlock(course);
+    else handleView(course);
+  };
+
+  if (userRole === 'admin' && location.pathname === '/courses') {
+    return <Navigate to="/admin/courses" replace />;
+  }
 
   const handlePaymentConfirm = async (course) => {
     if (!course) return;
@@ -108,44 +163,186 @@ export default function CoursesPage() {
     return (
       <div style={{ minHeight: '100vh', padding: 40, textAlign: 'center' }}>
         <p style={{ color: '#b91c1c' }}>Не удалось загрузить курсы: {coursesError}</p>
-      
+        <Link to="/api-check" style={{ marginTop: 12, display: 'inline-block' }}>
+          Проверить API
+        </Link>
       </div>
     );
   }
 
+  const courseTone = (c) => categoryTone(c?.category);
+
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #e8eef9 0%, #f0f4ff 45%, #e9ecf5 100%)', padding: '40px 20px' }}>
-      {/* Header */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto 40px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: '700', color: '#1f2937', margin: '0 0 12px' }}>
-          📚 Наши курсы
-        </h1>
-        <p style={{ fontSize: '16px', color: '#6b7280', margin: '0 0 20px' }}>
-          Выбери курс и начни обучение
-        </p>
-       
+    <div className="crs-catalog-root">
+      <div className="crs-catalog-shell">
+        <header className="crs-cat-header">
+          <div>
+            <p className="crs-cat-brand">UrkerPro</p>
+            <h1 className="crs-cat-title">Каталог курсов</h1>
+            <p className="crs-cat-lead">
+              Выберите направление: математика, естествознание, логика и языки — уроки с яркими
+              обложками и понятной структурой. Фильтруйте по категории или найдите курс по названию.
+            </p>
+          </div>
+        </header>
+
+        <div className="crs-cat-search-row">
+          <div className="crs-cat-search">
+            <span className="crs-cat-search-icon" aria-hidden>🔍</span>
+            <input
+              type="search"
+              placeholder="Найти курс..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Поиск по курсам"
+            />
+          </div>
+        </div>
+
+        <div className="crs-cat-chips" role="tablist" aria-label="Категории курсов">
+          {categoryChips.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              role="tab"
+              aria-selected={categoryKey === c.key}
+              className={`crs-cat-chip${categoryKey === c.key ? ' is-active' : ''}`}
+              onClick={() => setCategoryKey(c.key)}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        {filteredCourses.length === 0 ? (
+          <p className="crs-cat-empty">
+            {courses.length === 0
+              ? 'Пока нет опубликованных курсов.'
+              : 'Ничего не найдено. Измените поиск или категорию.'}
+          </p>
+        ) : (
+          <>
+            <section className="crs-cat-featured">
+              {featuredPrimary ? (
+                <button
+                  type="button"
+                  className="crs-cat-hero"
+                  onClick={() => openCourse(featuredPrimary)}
+                >
+                  <div
+                    className="crs-cat-hero-bg"
+                    style={
+                      featuredPrimary.image
+                        ? { backgroundImage: `url(${featuredPrimary.image})` }
+                        : undefined
+                    }
+                  />
+                  <div className="crs-cat-hero-overlay" />
+                  <span className="crs-cat-hero-play" aria-hidden>▶</span>
+                  <div className="crs-cat-hero-inner">
+                    <div className="crs-cat-hero-badges">
+                      <span className={`crs-cat-badge crs-cat-badge--${courseTone(featuredPrimary)}`}>
+                        {(featuredPrimary.category || 'Курс').toUpperCase()}
+                      </span>
+                      {purchasedCourses.includes(featuredPrimary.id) ? (
+                        <span className="crs-cat-badge crs-cat-badge--accent">У вас есть доступ</span>
+                      ) : null}
+                    </div>
+                    <h2 className="crs-cat-hero-title">{featuredPrimary.title}</h2>
+                    <p className="crs-cat-hero-desc">{featuredPrimary.description}</p>
+                    <div className="crs-cat-hero-meta">
+                      <span className="crs-cat-hero-pill">
+                        🕐 {featuredPrimary.duration || 'Гибкий график'}
+                      </span>
+                      <span className="crs-cat-hero-pill">★ {formatRating(featuredPrimary.rating)}</span>
+                    </div>
+                  </div>
+                </button>
+              ) : null}
+
+              {featuredSecondary ? (
+                <button
+                  type="button"
+                  className="crs-cat-side crs-cat-side--stack"
+                  onClick={() => openCourse(featuredSecondary)}
+                >
+                  <div
+                    className={`crs-cat-side-top${featuredSecondary.image ? '' : ' crs-cat-side-top--empty'}`}
+                    style={
+                      featuredSecondary.image
+                        ? { backgroundImage: `url(${featuredSecondary.image})` }
+                        : undefined
+                    }
+                  >
+                    <span className={`crs-cat-side-tag crs-cat-badge--${courseTone(featuredSecondary)}`}>
+                      {(featuredSecondary.category || 'Курс').toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="crs-cat-side-bottom">
+                    <h3 className="crs-cat-side-title">{featuredSecondary.title}</h3>
+                    <p className="crs-cat-side-desc">{featuredSecondary.description}</p>
+                    <div className="crs-cat-side-foot">
+                      <div className="crs-cat-inst">
+                        <span className="crs-cat-inst-av" aria-hidden>
+                          {(featuredSecondary.instructor || '?').trim().charAt(0).toUpperCase()}
+                        </span>
+                        <span className="crs-cat-inst-name">{featuredSecondary.instructor || 'Преподаватель'}</span>
+                      </div>
+                      <span className="crs-cat-side-arrow" aria-hidden>
+                        →
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                <div className="crs-cat-side crs-cat-side--placeholder" aria-hidden />
+              )}
+            </section>
+
+            <div className="crs-cat-grid">
+              {catalogRest.map((course) => {
+                const locked = course.isLocked && !purchasedCourses.includes(course.id);
+                const tone = courseTone(course);
+                return (
+                  <article key={course.id} className="crs-cat-card">
+                    <button type="button" className="crs-cat-card-link" onClick={() => openCourse(course)}>
+                      <div className={`crs-cat-card-media${course.image ? '' : ' crs-cat-card-media--empty'}`}>
+                        {course.image ? <img src={course.image} alt="" /> : <span aria-hidden>📘</span>}
+                        {locked ? <span className="crs-cat-card-lock" aria-hidden>🔒</span> : null}
+                      </div>
+                      <div className="crs-cat-card-body">
+                        <p className={`crs-cat-card-cat crs-cat-card-cat--${tone}`}>
+                          {(course.category || 'Курс').toUpperCase()}
+                        </p>
+                        <h2 className="crs-cat-card-title">{course.title}</h2>
+                        <p className="crs-cat-card-blurb">{course.description}</p>
+                        <div className="crs-cat-card-footer">
+                          <span>{course.duration || 'Гибкий график'}</span>
+                          <span className="crs-cat-card-meta">
+                            ★ {formatRating(course.rating)}
+                            {course.price > 0 ? ` · ${course.price.toLocaleString('ru-RU')} ₸` : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  </article>
+                );
+              })}
+              <aside className="crs-cat-cta">
+                <div className="crs-cat-cta-icon" aria-hidden>🚀</div>
+                <h2 className="crs-cat-cta-title">Ежедневный челлендж</h2>
+                <p className="crs-cat-cta-desc">
+                  Закрепите знания короткими испытаниями в олимпиадах — награды за серию верных ответов.
+                </p>
+                <Link className="crs-cat-cta-btn" to="/olympiads">
+                  Играть сейчас
+                </Link>
+              </aside>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Courses Grid */}
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-        gap: '24px'
-      }}>
-        {courses.map(course => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            onUnlock={handleUnlock}
-            onView={handleView}
-            isOwned={purchasedCourses.includes(course.id)}
-          />
-        ))}
-      </div>
-
-      {/* Payment Modal */}
       <PaymentModal
         isOpen={isPaymentOpen}
         course={selectedCourse}

@@ -8,7 +8,6 @@ namespace server.Controllers;
 
 [Route("api/resources/documents")]
 [ApiController]
-[Authorize]
 public class NormativeDocumentsController(AppDbContext context, IWebHostEnvironment env) : ControllerBase
 {
     private static readonly HashSet<string> AllowedAttachmentExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -19,6 +18,7 @@ public class NormativeDocumentsController(AppDbContext context, IWebHostEnvironm
     };
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> List()
     {
         var items = await context.NormativeDocuments
@@ -39,6 +39,7 @@ public class NormativeDocumentsController(AppDbContext context, IWebHostEnvironm
     }
 
     [HttpGet("{id:int}/file")]
+    [AllowAnonymous]
     public async Task<IActionResult> DownloadFile(int id)
     {
         var item = await context.NormativeDocuments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);

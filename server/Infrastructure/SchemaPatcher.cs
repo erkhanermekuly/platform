@@ -21,6 +21,9 @@ public static class SchemaPatcher
             await EnsureEventScenariosTableAsync(db, cancellationToken);
             await EnsureAdditionalMaterialsTableAsync(db, cancellationToken);
             await EnsureAdditionalMaterialsAttachedFileColumnsAsync(db, cancellationToken);
+            await MigrateLegacyMethodicalRowsFromNormativeDocumentsAsync(db, cancellationToken);
+            await EnsureConsultationsTableAsync(db, cancellationToken);
+            await MigrateLegacyConsultationsFromAdditionalMaterialsAsync(db, cancellationToken);
             await EnsureOlympiadsTablesAsync(db, cancellationToken);
             await EnsureOlympiadAttemptsTableAsync(db, cancellationToken);
             await EnsureOlympiadAttemptsExtraColumnsAsync(db, cancellationToken);
@@ -224,6 +227,128 @@ public static class SchemaPatcher
                 "ALTER TABLE `AdditionalMaterials` ADD COLUMN `AttachedFileRelativePath` varchar(512) CHARACTER SET utf8mb4 NULL;",
                 cancellationToken);
         }
+    }
+
+    private static async Task EnsureConsultationsTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var exists = await TableExistsAsync(db, "Consultations", cancellationToken);
+        if (exists)
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `Consultations` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `Title` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
+                `Description` varchar(3000) CHARACTER SET utf8mb4 NOT NULL,
+                `Url` varchar(1024) CHARACTER SET utf8mb4 NULL,
+                `CreatedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                CONSTRAINT `PK_Consultations` PRIMARY KEY (`Id`)
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Перенос записей, которые по смыслу относятся к методическим материалам,
+    /// но были ошибочно сохранены в NormativeDocuments.
+    /// </summary>
+    private static async Task MigrateLegacyMethodicalRowsFromNormativeDocumentsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "NormativeDocuments", cancellationToken) ||
+            !await TableExistsAsync(db, "AdditionalMaterials", cancellationToken))
+        {
+            return;
+        }
+
+        const string whereClause =
+            """
+            (
+                LOWER(`Title`) LIKE '%родител%' OR
+                LOWER(`Description`) LIKE '%родител%' OR
+                LOWER(`Title`) LIKE '%адаптац%' OR
+                LOWER(`Description`) LIKE '%адаптац%' OR
+                LOWER(`Title`) LIKE '%шаблон%' OR
+                LOWER(`Description`) LIKE '%шаблон%' OR
+                LOWER(`Title`) LIKE '%материал%' OR
+                LOWER(`Description`) LIKE '%материал%' OR
+                LOWER(`Title`) LIKE '%рекомендац%' OR
+                LOWER(`Description`) LIKE '%рекомендац%' OR
+                LOWER(`Title`) LIKE '%ссылк%' OR
+                LOWER(`Description`) LIKE '%ссылк%'
+            )
+            """;
+
+        await db.Database.ExecuteSqlRawAsync(
+            $"""
+            INSERT INTO `AdditionalMaterials` (`Title`, `Description`, `Url`, `AttachedFileName`, `AttachedFileRelativePath`, `CreatedAtUtc`)
+            SELECT nd.`Title`, nd.`Description`, nd.`Url`, nd.`AttachedFileName`, nd.`AttachedFileRelativePath`, nd.`CreatedAtUtc`
+            FROM `NormativeDocuments` nd
+            WHERE {whereClause}
+              AND NOT EXISTS (
+                SELECT 1 FROM `AdditionalMaterials` am
+                WHERE am.`Title` = nd.`Title`
+                  AND am.`Description` = nd.`Description`
+                  AND (am.`Url` <=> nd.`Url`)
+              );
+            """,
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            $"""
+            DELETE FROM `NormativeDocuments`
+            WHERE {whereClause};
+            """,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Перенос старых консультационных записей из AdditionalMaterials в отдельную таблицу Consultations.
+    /// Выполняется идемпотентно: повторный запуск не дублирует данные.
+    /// </summary>
+    private static async Task MigrateLegacyConsultationsFromAdditionalMaterialsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await TableExistsAsync(db, "AdditionalMaterials", cancellationToken) ||
+            !await TableExistsAsync(db, "Consultations", cancellationToken))
+        {
+            return;
+        }
+
+        const string whereClause =
+            """
+            (
+                LOWER(`Title`) LIKE '%консультац%' OR
+                LOWER(`Description`) LIKE '%консультац%' OR
+                LOWER(`Title`) LIKE '%родител%' OR
+                LOWER(`Description`) LIKE '%родител%' OR
+                LOWER(`Title`) LIKE '%адаптац%' OR
+                LOWER(`Description`) LIKE '%адаптац%'
+            )
+            """;
+
+        await db.Database.ExecuteSqlRawAsync(
+            $"""
+            INSERT INTO `Consultations` (`Title`, `Description`, `Url`, `CreatedAtUtc`)
+            SELECT am.`Title`, am.`Description`, am.`Url`, am.`CreatedAtUtc`
+            FROM `AdditionalMaterials` am
+            WHERE {whereClause}
+              AND NOT EXISTS (
+                SELECT 1 FROM `Consultations` c
+                WHERE c.`Title` = am.`Title`
+                  AND c.`Description` = am.`Description`
+                  AND (c.`Url` <=> am.`Url`)
+              );
+            """,
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            $"""
+            DELETE FROM `AdditionalMaterials`
+            WHERE {whereClause};
+            """,
+            cancellationToken);
     }
 
     private static async Task EnsureOlympiadsTablesAsync(AppDbContext db, CancellationToken cancellationToken)

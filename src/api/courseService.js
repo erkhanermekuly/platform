@@ -89,16 +89,20 @@ const request = async (path, options = {}, query = {}) => {
   return payload;
 };
 
-/** section: "documents" | "materials" — скачивание вложения (Bearer). */
+/** section: "documents" | "materials" — скачивание вложения. Для normative documents API допускает запрос без токена. */
 export const downloadResourceAttachedFile = async (section, id, suggestedFilename) => {
   const token = getAuthToken();
-  if (!token) {
+  if (!token && section !== 'documents') {
     throw new Error('Войдите в систему, чтобы скачать файл');
   }
   const seg = section === 'documents' ? 'documents' : 'materials';
   const path = `/resources/${seg}/${Number(id)}/file`;
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   const response = await fetch(buildUrl(path), {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
   });
   if (!response.ok) {
     const text = await response.text();
@@ -202,6 +206,12 @@ export const authAPI = {
   logout: async () => request('/auth/logout', { method: 'POST' }),
 
   getCurrentUser: async () => request('/auth/me'),
+
+  updateCurrentUser: async (payload) =>
+    request('/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
 };
 
 export const learningAPI = {
@@ -400,6 +410,20 @@ export const resourcesAPI = {
 
     removeAttachment: async (id) =>
       request(`/resources/materials/${id}/file`, { method: 'DELETE' }),
+  },
+  consultations: {
+    list: async () => request('/resources/consultations'),
+    create: async (body) =>
+      request('/resources/consultations', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    update: async (id, body) =>
+      request(`/resources/consultations/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    remove: async (id) => request(`/resources/consultations/${id}`, { method: 'DELETE' }),
   },
 };
 

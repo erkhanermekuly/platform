@@ -125,6 +125,73 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
         }));
     }
 
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<IActionResult> UpdateMe([FromBody] UpdateMeDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ApiResponse.Error("Некорректные данные профиля"));
+        }
+
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var account = await context.Accounts.FindAsync(userId);
+        if (account is null)
+        {
+            return NotFound(ApiResponse.Error("Пользователь не найден"));
+        }
+
+        var normalizedEmail = dto.Email.Trim();
+        var normalizedName = dto.Name.Trim();
+
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            return BadRequest(ApiResponse.Error("Имя не может быть пустым"));
+        }
+
+        var emailTaken = await context.Accounts.AnyAsync(a => a.Email == normalizedEmail && a.Id != userId);
+        if (emailTaken)
+        {
+            return BadRequest(ApiResponse.Error("Пользователь с таким email уже существует"));
+        }
+
+        var newPassword = string.IsNullOrWhiteSpace(dto.NewPassword) ? null : dto.NewPassword.Trim();
+        if (!string.IsNullOrEmpty(newPassword))
+        {
+            if (string.IsNullOrWhiteSpace(dto.CurrentPassword))
+            {
+                return BadRequest(ApiResponse.Error("Для смены пароля укажите текущий пароль"));
+            }
+
+            var currentOk = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, account.PasswordHash);
+            if (!currentOk)
+            {
+                return BadRequest(ApiResponse.Error("Текущий пароль указан неверно"));
+            }
+
+            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        }
+
+        account.Name = normalizedName;
+        account.Email = normalizedEmail;
+
+        await context.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            id = account.Id,
+            name = account.Name,
+            email = account.Email,
+            role = account.Role,
+            isBlocked = account.IsBlocked,
+        }, "Профиль обновлён"));
+    }
+
     private string GenerateJwtToken(AccountModel account)
     {
         var claims = new[]

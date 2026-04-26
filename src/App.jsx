@@ -18,6 +18,10 @@ import OlympiadTestPage from './pages/OlympiadTestPage'
 import AdminOlympiadQuestionsPage from './pages/AdminOlympiadQuestionsPage'
 import AdminOlympiadResultsPage from './pages/AdminOlympiadResultsPage'
 import AdminToolsPage from './pages/AdminToolsPage'
+import NormativeDocumentsPage from './pages/NormativeDocumentsPage'
+import AdminNormativeDocumentsPage from './pages/AdminNormativeDocumentsPage'
+import MethodicalMaterialsPage from './pages/MethodicalMaterialsPage'
+import ConsultationsPage from './pages/ConsultationsPage'
 import Profile from './pages/Profile/Profile'
 import './styles/global.css'
 import './App.css'
@@ -141,12 +145,46 @@ function App() {
                   </CourseAccessRoute>
                 }
               />
+              <Route path="/resources/documents" element={<Navigate to="/normative-documents" replace />} />
+              <Route path="/resources/materials" element={<Navigate to="/methodical-materials" replace />} />
+              <Route
+                path="/normative-documents"
+                element={
+                  <AuthenticatedRoute>
+                    <NormativeDocumentsPage />
+                  </AuthenticatedRoute>
+                }
+              />
+              <Route
+                path="/methodical-materials"
+                element={
+                  <AuthenticatedRoute>
+                    <MethodicalMaterialsPage />
+                  </AuthenticatedRoute>
+                }
+              />
+              <Route
+                path="/consultations"
+                element={
+                  <AuthenticatedRoute>
+                    <ConsultationsPage />
+                  </AuthenticatedRoute>
+                }
+              />
               <Route
                 path="/resources/:kind"
                 element={
                   <AuthenticatedRoute>
                     <ResourceCategoryPage />
                   </AuthenticatedRoute>
+                }
+              />
+              <Route
+                path="/admin/normative-documents"
+                element={
+                  <AdminOnlyRoute>
+                    <AdminNormativeDocumentsPage />
+                  </AdminOnlyRoute>
                 }
               />
               <Route

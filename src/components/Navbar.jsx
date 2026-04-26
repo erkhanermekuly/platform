@@ -37,7 +37,7 @@ export default function Navbar() {
           className="navbar-logo"
         >
           <span className="logo-icon">📚</span>
-          <span className="logo-text">LearnHub</span>
+          <span className="logo-text">UrkerPro</span>
         </Link>
 
         {/* Menu Button for Mobile */}
@@ -90,13 +90,15 @@ export default function Navbar() {
                 Профиль
               </Link>
               {isAdmin && (
-                <Link
-                  to="/admin/tools"
-                  className={`nav-link ${isActive('/admin/tools') ? 'active' : ''}`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Админ: экспорт
-                </Link>
+                <>
+                  <Link
+                    to="/admin/tools"
+                    className={`nav-link ${isActive('/admin/tools') ? 'active' : ''}`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Админ: экспорт
+                  </Link>
+                </>
               )}
             </>
           )}

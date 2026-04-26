@@ -173,6 +173,25 @@ public static class DatabaseSeeder
                     CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
                 });
         }
+
+        if (!await context.Consultations.AnyAsync(cancellationToken))
+        {
+            context.Consultations.AddRange(
+                new ConsultationModel
+                {
+                    Title = "Консультация по адаптации детей раннего возраста",
+                    Description = "Практические рекомендации по мягкой адаптации и взаимодействию с родителями.",
+                    Url = null,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
+                },
+                new ConsultationModel
+                {
+                    Title = "Консультация для родителей по поддержке речи",
+                    Description = "Памятка с упражнениями и советами для развития речи в домашних условиях.",
+                    Url = null,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+                });
+        }
     }
 
     /// <summary>
