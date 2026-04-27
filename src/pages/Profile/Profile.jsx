@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI, learningAPI, olympiadsAPI, resourcesAPI } from '../../api/courseService';
 import { useAuth } from '../../context/AuthContext';
@@ -113,16 +113,61 @@ function Profile() {
     newPassword: '',
     confirmPassword: '',
   });
+  const [diplomas, setDiplomas] = useState([]);
+  const [uploadingDiploma, setUploadingDiploma] = useState(false);
+  const [deletingDiplomaId, setDeletingDiplomaId] = useState(null);
+  const [diplomaPreview, setDiplomaPreview] = useState(null);
+
+  const resolveDiplomaFileUrl = (path) => {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:5240/api').replace(/\/$/, '');
+    const p = path.startsWith('/') ? path : `/${path}`;
+    if (p.startsWith('/api/')) {
+      const origin = apiBase.endsWith('/api')
+        ? apiBase.slice(0, -4)
+        : new URL(apiBase.includes('://') ? apiBase : `http://${apiBase}`).origin;
+      return `${origin}${p}`;
+    }
+    return `${apiBase}${p}`;
+  };
+
+  const closeDiplomaPreview = useCallback(() => {
+    setDiplomaPreview((prev) => {
+      if (prev?.blobUrl) URL.revokeObjectURL(prev.blobUrl);
+      return null;
+    });
+  }, []);
+
+  const openDiplomaPreview = async (item) => {
+    const url = resolveDiplomaFileUrl(item.fileUrl);
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+    try {
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Не удалось загрузить диплом');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      setDiplomaPreview((prev) => {
+        if (prev?.blobUrl) URL.revokeObjectURL(prev.blobUrl);
+        return { blobUrl, title: item.fileName || 'Диплом' };
+      });
+    } catch (e) {
+      alert(e?.message || 'Не удалось открыть диплом');
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       setError('');
       try {
-        const [meRes, coursesRes, olympRes] = await Promise.all([
+        const [meRes, coursesRes, olympRes, diplomaRes] = await Promise.all([
           authAPI.getCurrentUser(),
           learningAPI.getMyLearning(),
           olympiadsAPI.getMyResults(),
+          authAPI.listMyDiplomas(),
         ]);
 
         if (meRes?.success && meRes?.data) {
@@ -131,6 +176,7 @@ function Profile() {
 
         setMyCourses(Array.isArray(coursesRes?.data) ? coursesRes.data : []);
         setOlympiadResults(Array.isArray(olympRes?.data) ? olympRes.data : []);
+        setDiplomas(Array.isArray(diplomaRes?.data) ? diplomaRes.data : []);
       } catch (e) {
         setError(e?.message || 'Не удалось загрузить профиль');
       } finally {
@@ -140,6 +186,15 @@ function Profile() {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!diplomaPreview) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeDiplomaPreview();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [diplomaPreview, closeDiplomaPreview]);
 
   const completedCourses = useMemo(
     () => myCourses.filter((item) => item.progress === 100).length,
@@ -594,6 +649,45 @@ function Profile() {
     }));
   };
 
+  const handleUploadDiploma = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const ext = String(file.name).toLowerCase();
+    if (!(ext.endsWith('.jpg') || ext.endsWith('.jpeg') || ext.endsWith('.png'))) {
+      alert('Разрешены только файлы .jpg, .jpeg, .png');
+      return;
+    }
+    setUploadingDiploma(true);
+    try {
+      const res = await authAPI.uploadMyDiploma(file);
+      const created = res?.data;
+      if (created) {
+        setDiplomas((prev) => [created, ...prev]);
+      } else {
+        const refreshed = await authAPI.listMyDiplomas();
+        setDiplomas(Array.isArray(refreshed?.data) ? refreshed.data : []);
+      }
+    } catch (e) {
+      alert(e?.message || 'Не удалось загрузить диплом');
+    } finally {
+      setUploadingDiploma(false);
+    }
+  };
+
+  const handleDeleteDiploma = async (id) => {
+    if (!window.confirm('Удалить диплом из портфолио?')) return;
+    setDeletingDiplomaId(id);
+    try {
+      await authAPI.deleteMyDiploma(id);
+      setDiplomas((prev) => prev.filter((d) => d.id !== id));
+    } catch (e) {
+      alert(e?.message || 'Не удалось удалить диплом');
+    } finally {
+      setDeletingDiplomaId(null);
+    }
+  };
+
   return (
     <div className="profile-page profile-user-page" style={styles.page}>
       <div className="profile-user-shell">
@@ -709,6 +803,47 @@ function Profile() {
               <Link to="/olympiads" className="profile-user-download-btn">
                 Скачать сертификаты
               </Link>
+
+              <div className="profile-user-diplomas">
+                <div className="profile-user-content-head">
+                  <h2>Портфолио дипломов</h2>
+                </div>
+                <label className="profile-user-diploma-upload">
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    onChange={handleUploadDiploma}
+                    disabled={uploadingDiploma}
+                  />
+                  {uploadingDiploma ? 'Загрузка...' : 'Загрузить диплом'}
+                </label>
+                {diplomas.length === 0 ? (
+                  <p className="profile-user-empty">Пока нет загруженных дипломов.</p>
+                ) : (
+                  <div className="profile-user-diploma-list">
+                    {diplomas.map((item) => (
+                      <article key={item.id} className="profile-user-diploma-item">
+                        <button
+                          type="button"
+                          className="profile-user-diploma-link"
+                          title="Просмотр диплома"
+                          onClick={() => openDiplomaPreview(item)}
+                        >
+                          {item.fileName || 'Диплом'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDiploma(item.id)}
+                          disabled={deletingDiplomaId === item.id}
+                          className="profile-user-diploma-del"
+                        >
+                          {deletingDiplomaId === item.id ? '...' : 'Удалить'}
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
             </aside>
             </section>
           ) : (
@@ -844,6 +979,39 @@ function Profile() {
           )}
         </main>
       </div>
+
+      {diplomaPreview ? (
+        <div
+          className="profile-diploma-modal-backdrop"
+          role="presentation"
+          onClick={closeDiplomaPreview}
+        >
+          <div
+            className="profile-diploma-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-diploma-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="profile-diploma-modal-head">
+              <p id="profile-diploma-modal-title" className="profile-diploma-modal-title">
+                {diplomaPreview.title}
+              </p>
+              <button
+                type="button"
+                className="profile-diploma-modal-close"
+                onClick={closeDiplomaPreview}
+                aria-label="Закрыть просмотр"
+              >
+                ×
+              </button>
+            </div>
+            <div className="profile-diploma-modal-body">
+              <img src={diplomaPreview.blobUrl} alt={diplomaPreview.title} />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

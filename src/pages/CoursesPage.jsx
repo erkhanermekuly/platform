@@ -4,7 +4,14 @@ import { AppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import PaymentModal from '../components/PaymentModal/PaymentModal';
 import AdminPanel from '../components/AdminPanel/AdminPanel';
+import announcementImage from '../assets/courses-announcement.jpg';
+import announcementSchoolsRu from '../assets/courses-announcement-schools-ru.png';
+import announcementTvoc from '../assets/courses-announcement-tvoc.png';
+import announcementPreschool from '../assets/courses-announcement-preschool.png';
+import announcementSchoolsKk from '../assets/courses-announcement-schools-kk.png';
 import '../styles/pages.css';
+
+const COURSES_WHATSAPP_URL = 'https://wa.me/77774063396';
 
 function categoryTone(category) {
   const s = (category || '').toLowerCase();
@@ -38,8 +45,8 @@ export default function CoursesPage() {
   const location = useLocation();
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [categoryKey, setCategoryKey] = useState('all');
+  const [search, _setSearch] = useState('');
+  const [categoryKey, _setCategoryKey] = useState('all');
 
   const handleUnlock = (course) => {
     setSelectedCourse(course);
@@ -50,7 +57,7 @@ export default function CoursesPage() {
     navigate(`/course/${course.id}`);
   };
 
-  const categoryChips = useMemo(() => {
+  const _categoryChips = useMemo(() => {
     const seen = new Map();
     for (const c of courses) {
       const raw = (c.category || '').trim();
@@ -179,14 +186,87 @@ export default function CoursesPage() {
           <div>
             <p className="crs-cat-brand">UrkerPro</p>
             <h1 className="crs-cat-title">Каталог курсов</h1>
-            <p className="crs-cat-lead">
+            {/* <p className="crs-cat-lead">
               Выберите направление: математика, естествознание, логика и языки — уроки с яркими
               обложками и понятной структурой. Фильтруйте по категории или найдите курс по названию.
-            </p>
+            </p> */}
           </div>
         </header>
 
-        <div className="crs-cat-search-row">
+        <div className="crs-announcements">
+          <a
+            className="crs-announcement"
+            href={COURSES_WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Открыть WhatsApp: +7 777 406 3396"
+          >
+            <img
+              src={announcementImage}
+              alt="Білім бағдарламаларының тізімі"
+              className="crs-announcement-image"
+            />
+            <span className="crs-announcement-cta">WhatsApp: +7 777 406 3396</span>
+          </a>
+          <a
+            className="crs-announcement"
+            href={COURSES_WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="WhatsApp: образовательные программы для школ (RU)"
+          >
+            <img
+              src={announcementSchoolsRu}
+              alt="Список образовательных программ для педагогов общеобразовательных школ"
+              className="crs-announcement-image crs-announcement-image--flyer"
+            />
+            <span className="crs-announcement-cta">WhatsApp: +7 777 406 3396</span>
+          </a>
+          <a
+            className="crs-announcement"
+            href={COURSES_WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="WhatsApp: программы для ТиПО"
+          >
+            <img
+              src={announcementTvoc}
+              alt="Бағдарламалар техникалық және кәсіптік білім беру педагогтеріне"
+              className="crs-announcement-image crs-announcement-image--flyer"
+            />
+            <span className="crs-announcement-cta">WhatsApp: +7 777 406 3396</span>
+          </a>
+          <a
+            className="crs-announcement"
+            href={COURSES_WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="WhatsApp: программы для дошкольных организаций"
+          >
+            <img
+              src={announcementPreschool}
+              alt="Бағдарламалар мектепке дейінгі білім беру ұйымдарына"
+              className="crs-announcement-image crs-announcement-image--flyer"
+            />
+            <span className="crs-announcement-cta">WhatsApp: +7 777 406 3396</span>
+          </a>
+          <a
+            className="crs-announcement"
+            href={COURSES_WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="WhatsApp: тізімі бағдарламалар жалпы білім беретін мектептер"
+          >
+            <img
+              src={announcementSchoolsKk}
+              alt="Білім бағдарламаларының тізімі — жалпы білім беретін мектептер"
+              className="crs-announcement-image crs-announcement-image--flyer"
+            />
+            <span className="crs-announcement-cta">WhatsApp: +7 777 406 3396</span>
+          </a>
+        </div>
+
+        {/* <div className="crs-cat-search-row">
           <div className="crs-cat-search">
             <span className="crs-cat-search-icon" aria-hidden>🔍</span>
             <input
@@ -197,9 +277,9 @@ export default function CoursesPage() {
               aria-label="Поиск по курсам"
             />
           </div>
-        </div>
+        </div> */}
 
-        <div className="crs-cat-chips" role="tablist" aria-label="Категории курсов">
+        {/* <div className="crs-cat-chips" role="tablist" aria-label="Категории курсов">
           {categoryChips.map((c) => (
             <button
               key={c.key}
@@ -212,14 +292,12 @@ export default function CoursesPage() {
               {c.label}
             </button>
           ))}
-        </div>
+        </div> */}
 
         {filteredCourses.length === 0 ? (
-          <p className="crs-cat-empty">
-            {courses.length === 0
-              ? 'Пока нет опубликованных курсов.'
-              : 'Ничего не найдено. Измените поиск или категорию.'}
-          </p>
+          courses.length === 0 ? null : (
+            <p className="crs-cat-empty">Ничего не найдено. Измените поиск или категорию.</p>
+          )
         ) : (
           <>
             <section className="crs-cat-featured">

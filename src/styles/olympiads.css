@@ -620,13 +620,13 @@
 
 /* ─── Каталог олимпиад (/olympiads) — макет «каталог» ─────────────────── */
 .olym-root.olym-catalog {
-  --olym-cat-accent: #5b4df5;
-  --olym-cat-accent-dark: #4336d4;
+  --olym-cat-accent: #1e3a8a;
+  --olym-cat-accent-dark: #162d6b;
   --olym-cat-surface: #ffffff;
-  --olym-cat-border: #e8ecf4;
-  --olym-cat-muted: #6b7289;
+  --olym-cat-border: #d7dfea;
+  --olym-cat-muted: #56647c;
   --olym-cat-text: #0f172a;
-  background: #f4f6fb;
+  background: linear-gradient(180deg, #eef2f8 0%, #f7f9fc 100%);
   padding: clamp(20px, 3vw, 36px) clamp(14px, 3vw, 28px) 72px;
 }
 
@@ -669,21 +669,21 @@
 }
 
 .olym-cat-admin-new {
-  border: 1px solid #7dd3fc;
-  border-radius: 999px;
+  border: 1px solid #2a4aa0;
+  border-radius: 12px;
   padding: 10px 18px;
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
-  background: linear-gradient(180deg, #7dd3fc 0%, #38bdf8 100%);
+  background: linear-gradient(180deg, #2b4fa8 0%, #1b397f 100%);
   color: #fff;
-  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.35);
+  box-shadow: 0 8px 20px rgba(22, 45, 107, 0.28);
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
 .olym-cat-admin-new:hover {
-  filter: brightness(1.05);
-  box-shadow: 0 10px 28px rgba(14, 165, 233, 0.42);
+  filter: brightness(1.02);
+  box-shadow: 0 10px 24px rgba(22, 45, 107, 0.35);
 }
 
 .olym-cat-admin-new:active {
@@ -701,7 +701,7 @@
   max-width: 520px;
   background: var(--olym-cat-surface);
   border: 1px solid var(--olym-cat-border);
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 10px 16px;
   box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
 }
@@ -753,29 +753,36 @@
 .olym-cat-featured {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-  gap: 14px;
-  margin-bottom: 22px;
+  gap: 16px;
+  margin-bottom: 26px;
 }
 
 .olym-cat-hero {
   position: relative;
   display: block;
   min-height: 280px;
-  border-radius: 24px;
+  border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
   color: #fff;
-  border: 1px solid #1e1b4b22;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  border: 1px solid #13254f55;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14);
+}
+
+.olym-cat-hero-wrap,
+.olym-cat-side-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .olym-cat-hero-bg {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 20%, rgba(120, 180, 255, 0.35), transparent 45%),
-    radial-gradient(circle at 80% 60%, rgba(180, 120, 255, 0.4), transparent 50%),
-    linear-gradient(145deg, #0b1028 0%, #1a1f4d 55%, #2d1b69 100%);
+    radial-gradient(circle at 15% 20%, rgba(58, 91, 168, 0.38), transparent 48%),
+    radial-gradient(circle at 82% 64%, rgba(28, 44, 88, 0.5), transparent 52%),
+    linear-gradient(145deg, #0a1429 0%, #10203f 50%, #14294f 100%);
   background-size: cover;
   background-position: center;
 }
@@ -783,7 +790,7 @@
 .olym-cat-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(8, 12, 32, 0.1) 0%, rgba(8, 12, 32, 0.82) 100%);
+  background: linear-gradient(180deg, rgba(8, 14, 30, 0.08) 0%, rgba(8, 14, 30, 0.86) 100%);
 }
 
 .olym-cat-hero-inner {
@@ -812,12 +819,12 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .olym-cat-badge--accent {
-  background: rgba(91, 77, 245, 0.55);
+  background: rgba(30, 58, 138, 0.64);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
@@ -849,8 +856,8 @@
 }
 
 .olym-cat-side {
-  border-radius: 22px;
-  background: linear-gradient(180deg, #eef2ff 0%, #ffffff 55%);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f2f5fb 0%, #ffffff 60%);
   border: 1px solid var(--olym-cat-border);
   padding: 20px;
   display: flex;
@@ -867,7 +874,7 @@
 .olym-cat-side-icon {
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 10px;
   background: linear-gradient(160deg, var(--olym-cat-accent), var(--olym-cat-accent-dark));
   color: #fff;
   display: grid;
@@ -882,7 +889,7 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--olym-cat-accent);
+  color: #334a84;
 }
 
 .olym-cat-side-title {
@@ -934,12 +941,12 @@
   align-items: center;
   width: 100%;
   padding: 12px 14px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #6b5cff 0%, var(--olym-cat-accent-dark) 100%);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #2b4fa8 0%, var(--olym-cat-accent-dark) 100%);
   color: #fff;
   font-weight: 800;
   text-decoration: none;
-  box-shadow: 0 8px 22px rgba(91, 77, 245, 0.35);
+  box-shadow: 0 8px 20px rgba(22, 45, 107, 0.28);
 }
 
 .olym-cat-grid {
@@ -949,17 +956,17 @@
 }
 
 .olym-cat-card {
-  border-radius: 20px;
+  border-radius: 14px;
   border: 1px solid var(--olym-cat-border);
   background: #fff;
   overflow: hidden;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .olym-cat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
 }
 
 .olym-cat-card-link {
@@ -970,7 +977,7 @@
 
 .olym-cat-card-media {
   height: 140px;
-  background: linear-gradient(145deg, #e2e8f0, #cbd5e1);
+  background: linear-gradient(145deg, #dce4ef, #c6d2e3);
 }
 
 .olym-cat-card-media img {
@@ -996,7 +1003,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #db2777;
+  color: #1e3a8a;
 }
 
 .olym-cat-card-title {
@@ -1017,7 +1024,7 @@
 }
 
 .olym-cat-card-price {
-  color: var(--olym-cat-accent);
+  color: #1e3a8a;
   font-weight: 800;
 }
 
@@ -1031,7 +1038,7 @@
 }
 
 .olym-cat-card-admin-link {
-  color: var(--olym-cat-accent);
+  color: #1e3a8a;
   font-weight: 700;
   text-decoration: none;
 }
@@ -1046,6 +1053,14 @@
   padding: 0;
 }
 
+.olym-cat-featured-admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+
 .olym-cat-fab {
   position: fixed;
   right: clamp(16px, 4vw, 32px);
@@ -1054,13 +1069,13 @@
   height: 56px;
   border-radius: 50%;
   border: 0;
-  background: linear-gradient(180deg, #6b5cff 0%, var(--olym-cat-accent-dark) 100%);
+  background: linear-gradient(180deg, #2b4fa8 0%, var(--olym-cat-accent-dark) 100%);
   color: #fff;
   font-size: 28px;
   font-weight: 300;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 12px 32px rgba(91, 77, 245, 0.45);
+  box-shadow: 0 12px 30px rgba(22, 45, 107, 0.35);
   z-index: 50;
 }
 
@@ -1434,6 +1449,7 @@
   padding: 14px clamp(16px, 4vw, 28px);
   padding-bottom: max(14px, env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--olym-tx-border);
   box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.06);

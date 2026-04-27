@@ -42,7 +42,7 @@ export default function OlympiadsPage() {
   const [formOpen, setFormOpen] = useState(false);
 
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
+  const [category, _setCategory] = useState('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -180,45 +180,83 @@ export default function OlympiadsPage() {
           <>
             <section className="olym-cat-featured">
               {featuredPrimary ? (
-                <Link className="olym-cat-hero" to={`/olympiads/${featuredPrimary.id}`}>
-                  <div className="olym-cat-hero-bg" />
-                  <div className="olym-cat-hero-overlay" />
-                  <div className="olym-cat-hero-inner">
-                    <div className="olym-cat-hero-badges">
-                      <span className="olym-cat-badge">Олимпиада</span>
-                      <span className="olym-cat-badge olymp-cat-badge--accent">В фокусе</span>
+                <div className="olym-cat-hero-wrap">
+                  <Link className="olym-cat-hero" to={`/olympiads/${featuredPrimary.id}`}>
+                    <div className="olym-cat-hero-bg" />
+                    <div className="olym-cat-hero-overlay" />
+                    <div className="olym-cat-hero-inner">
+                      <div className="olym-cat-hero-badges">
+                        <span className="olym-cat-badge">Олимпиада</span>
+                        <span className="olym-cat-badge olymp-cat-badge--accent">В фокусе</span>
+                      </div>
+                      <h2 className="olym-cat-hero-title">{featuredPrimary.title}</h2>
+                      <p className="olym-cat-hero-desc">{featuredPrimary.description}</p>
+                      <div className="olym-cat-hero-meta">
+                        <span>Дата: {formatOlympiadDate(featuredPrimary.createdAtUtc)}</span>
+                        <span>Вопросов: {featuredPrimary.questionsCount ?? 0}</span>
+                        <span>{featuredPrimary.myCompleted ? '✓ Пройдено' : 'Участие бесплатно'}</span>
+                      </div>
                     </div>
-                    <h2 className="olym-cat-hero-title">{featuredPrimary.title}</h2>
-                    <p className="olym-cat-hero-desc">{featuredPrimary.description}</p>
-                    <div className="olym-cat-hero-meta">
-                      <span>📅 {formatOlympiadDate(featuredPrimary.createdAtUtc)}</span>
-                      <span>❓ Вопросов: {featuredPrimary.questionsCount ?? 0}</span>
-                      <span>{featuredPrimary.myCompleted ? '✓ Пройдено' : 'Участие бесплатно'}</span>
+                  </Link>
+                  {isAdmin ? (
+                    <div className="olym-cat-featured-admin">
+                      <Link className="olym-cat-card-admin-link" to={`/admin/olympiads/${featuredPrimary.id}/questions`}>
+                        Вопросы
+                      </Link>
+                      <Link className="olym-cat-card-admin-link" to={`/admin/olympiads/${featuredPrimary.id}/results`}>
+                        Результаты
+                      </Link>
+                      <button
+                        type="button"
+                        className="olym-cat-card-admin-del"
+                        onClick={() => handleDelete(featuredPrimary.id)}
+                      >
+                        Удалить
+                      </button>
                     </div>
-                  </div>
-                </Link>
+                  ) : null}
+                </div>
               ) : null}
 
               {featuredSecondary ? (
-                <aside className="olym-cat-side">
-                  <div className="olym-cat-side-icon" aria-hidden>∑</div>
-                  <p className="olym-cat-side-kicker">Логика и математика</p>
-                  <h3 className="olym-cat-side-title">{featuredSecondary.title}</h3>
-                  <p className="olym-cat-side-desc">{featuredSecondary.description}</p>
-                  <dl className="olym-cat-side-dl">
-                    <div>
-                      <dt>Дата</dt>
-                      <dd>{formatOlympiadDate(featuredSecondary.createdAtUtc)}</dd>
+                <div className="olym-cat-side-wrap">
+                  <aside className="olym-cat-side">
+                    <div className="olym-cat-side-icon" aria-hidden>∑</div>
+                    <p className="olym-cat-side-kicker">Логика и математика</p>
+                    <h3 className="olym-cat-side-title">{featuredSecondary.title}</h3>
+                    <p className="olym-cat-side-desc">{featuredSecondary.description}</p>
+                    <dl className="olym-cat-side-dl">
+                      <div>
+                        <dt>Дата</dt>
+                        <dd>{formatOlympiadDate(featuredSecondary.createdAtUtc)}</dd>
+                      </div>
+                      <div>
+                        <dt>Участие</dt>
+                        <dd>Бесплатно</dd>
+                      </div>
+                    </dl>
+                    <Link className="olym-cat-side-cta" to={`/olympiads/${featuredSecondary.id}`}>
+                      Зарегистрироваться
+                    </Link>
+                  </aside>
+                  {isAdmin ? (
+                    <div className="olym-cat-featured-admin">
+                      <Link className="olym-cat-card-admin-link" to={`/admin/olympiads/${featuredSecondary.id}/questions`}>
+                        Вопросы
+                      </Link>
+                      <Link className="olym-cat-card-admin-link" to={`/admin/olympiads/${featuredSecondary.id}/results`}>
+                        Результаты
+                      </Link>
+                      <button
+                        type="button"
+                        className="olym-cat-card-admin-del"
+                        onClick={() => handleDelete(featuredSecondary.id)}
+                      >
+                        Удалить
+                      </button>
                     </div>
-                    <div>
-                      <dt>Участие</dt>
-                      <dd>Бесплатно</dd>
-                    </div>
-                  </dl>
-                  <Link className="olym-cat-side-cta" to={`/olympiads/${featuredSecondary.id}`}>
-                    Зарегистрироваться
-                  </Link>
-                </aside>
+                  ) : null}
+                </div>
               ) : (
                 <div className="olym-cat-side olymp-cat-side--placeholder" aria-hidden />
               )}
@@ -233,7 +271,7 @@ export default function OlympiadsPage() {
                     <article key={o.id} className="olym-cat-card">
                       <Link to={`/olympiads/${o.id}`} className="olym-cat-card-link">
                         <div className="olym-cat-card-media olymp-cat-card-media--empty">
-                          <span aria-hidden>🏆</span>
+                          <span aria-hidden>OLY</span>
                         </div>
                         <div className="olym-cat-card-body">
                           <p className="olym-cat-card-cat">Олимпиада</p>

@@ -38,4 +38,6 @@ public class AccountModel
     public ICollection<LessonCompletionModel> LessonCompletions { get; set; } = [];
 
     public ICollection<OlympiadAttemptModel> OlympiadAttempts { get; set; } = [];
+
+    public ICollection<UserDiplomaModel> Diplomas { get; set; } = [];
 }

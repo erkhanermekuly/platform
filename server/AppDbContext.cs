@@ -41,6 +41,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<AuditLogModel> AuditLogs { get; set; }
 
+    public DbSet<UserDiplomaModel> UserDiplomas { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -198,5 +200,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany()
             .HasForeignKey(x => x.AccountId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<UserDiplomaModel>()
+            .HasOne(x => x.Account)
+            .WithMany(x => x.Diplomas)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserDiplomaModel>()
+            .Property(x => x.UploadedAtUtc)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
     }
 }

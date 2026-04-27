@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { coursesSectionPath } from '../auth/roles';
+import urkerproLogo from '../assets/urkerpro-logo.png';
 import '../styles/navbar.css';
 
 export default function Navbar() {
@@ -35,9 +36,16 @@ export default function Navbar() {
         <Link
           to={isAuthenticated ? '/home' : '/login'}
           className="navbar-logo"
+          aria-label="UrkerPro — на главную"
         >
-          <span className="logo-icon">📚</span>
-          <span className="logo-text">UrkerPro</span>
+          <img
+            src={urkerproLogo}
+            alt=""
+            className="navbar-logo-img"
+            width={200}
+            height={64}
+            decoding="async"
+          />
         </Link>
 
         {/* Menu Button for Mobile */}

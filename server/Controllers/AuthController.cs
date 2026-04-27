@@ -12,8 +12,15 @@ namespace server.Controllers;
 
 [Route("api/auth")]
 [ApiController]
-public class AuthController(AppDbContext context, IConfiguration config) : ControllerBase
+public class AuthController(AppDbContext context, IConfiguration config, IWebHostEnvironment env) : ControllerBase
 {
+    private static readonly HashSet<string> AllowedDiplomaExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg",
+        ".jpeg",
+        ".png",
+    };
+
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
@@ -192,6 +199,144 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
         }, "Профиль обновлён"));
     }
 
+    [HttpGet("me/diplomas")]
+    [Authorize]
+    public async Task<IActionResult> ListMyDiplomas()
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var items = await context.UserDiplomas
+            .AsNoTracking()
+            .Where(x => x.AccountId == userId)
+            .OrderByDescending(x => x.UploadedAtUtc)
+            .Select(x => new
+            {
+                id = x.Id,
+                fileName = x.OriginalFileName,
+                uploadedAtUtc = x.UploadedAtUtc,
+                fileUrl = $"/api/auth/me/diplomas/{x.Id}/file",
+            })
+            .ToListAsync();
+
+        return Ok(ApiResponse<object>.Ok(items));
+    }
+
+    [HttpPost("me/diplomas")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(26_214_400)]
+    public async Task<IActionResult> UploadMyDiploma()
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        if (Request.Form.Files.Count == 0)
+        {
+            return BadRequest(ApiResponse.Error("Не передан файл диплома"));
+        }
+
+        var file = Request.Form.Files[0];
+        if (file.Length <= 0)
+        {
+            return BadRequest(ApiResponse.Error("Файл пустой"));
+        }
+
+        var originalName = Path.GetFileName(file.FileName);
+        var ext = Path.GetExtension(originalName);
+        if (string.IsNullOrWhiteSpace(ext) || !AllowedDiplomaExtensions.Contains(ext))
+        {
+            return BadRequest(ApiResponse.Error("Разрешены только .jpg, .jpeg, .png"));
+        }
+
+        var userFolder = Path.Combine(env.ContentRootPath, "uploads", "portfolio", userId.ToString());
+        Directory.CreateDirectory(userFolder);
+        var safeName = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+        var fullPath = Path.Combine(userFolder, safeName);
+
+        await using (var fs = System.IO.File.Create(fullPath))
+        {
+            await file.CopyToAsync(fs);
+        }
+
+        var model = new UserDiplomaModel
+        {
+            AccountId = userId,
+            OriginalFileName = originalName,
+            RelativePath = Path.Combine("uploads", "portfolio", userId.ToString(), safeName).Replace("\\", "/"),
+            UploadedAtUtc = DateTime.UtcNow,
+        };
+        context.UserDiplomas.Add(model);
+        await context.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            id = model.Id,
+            fileName = model.OriginalFileName,
+            uploadedAtUtc = model.UploadedAtUtc,
+            fileUrl = $"/api/auth/me/diplomas/{model.Id}/file",
+        }, "Диплом загружен"));
+    }
+
+    [HttpGet("me/diplomas/{id:int}/file")]
+    [Authorize]
+    public async Task<IActionResult> DownloadMyDiploma(int id)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var item = await context.UserDiplomas.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id && x.AccountId == userId);
+        if (item is null)
+        {
+            return NotFound(ApiResponse.Error("Диплом не найден"));
+        }
+
+        var fullPath = Path.Combine(env.ContentRootPath, item.RelativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+        if (!System.IO.File.Exists(fullPath))
+        {
+            return NotFound(ApiResponse.Error("Файл отсутствует на сервере"));
+        }
+
+        return PhysicalFile(fullPath, GuessImageContentType(item.OriginalFileName), item.OriginalFileName);
+    }
+
+    [HttpDelete("me/diplomas/{id:int}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteMyDiploma(int id)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
+        }
+
+        var item = await context.UserDiplomas.FirstOrDefaultAsync(x => x.Id == id && x.AccountId == userId);
+        if (item is null)
+        {
+            return NotFound(ApiResponse.Error("Диплом не найден"));
+        }
+
+        var fullPath = Path.Combine(env.ContentRootPath, item.RelativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+        if (System.IO.File.Exists(fullPath))
+        {
+            System.IO.File.Delete(fullPath);
+        }
+
+        context.UserDiplomas.Remove(item);
+        await context.SaveChangesAsync();
+        return Ok(ApiResponse.Ok("Диплом удалён"));
+    }
+
     private string GenerateJwtToken(AccountModel account)
     {
         var claims = new[]
@@ -214,6 +359,18 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string GuessImageContentType(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            _ => "application/octet-stream",
+        };
     }
 
 }

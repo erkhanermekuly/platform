@@ -4,6 +4,7 @@ import { useCourses } from '../hooks/useApi';
 import { useAuth } from '../context/AuthContext';
 import { coursesSectionPath } from '../auth/roles';
 import { learningAPI, notificationsAPI } from '../api/courseService';
+import urkerproLogo from '../assets/urkerpro-logo.png';
 import '../styles/pages.css';
 
 function _formatNotifAt(at) {
@@ -85,7 +86,17 @@ export default function HomePage() {
     <div className="home-page home-v2-page">
       <section className="home-v2-shell">
         <header className="home-v2-hero">
-          <p className="home-v2-kicker">UrkerPro</p>
+          <div className="home-v2-hero-brand">
+            <img
+              src={urkerproLogo}
+              alt="UrkerPro"
+              className="home-v2-hero-logo"
+              width={560}
+              height={224}
+              loading="eager"
+              decoding="async"
+            />
+          </div>
           <h1>
             Цифровая экосистема для дошкольного
             <span> образования</span>
@@ -97,6 +108,12 @@ export default function HomePage() {
         </header>
 
         <section className="home-v2-grid">
+        <Link to="/normative-documents" className="home-v2-card home-v2-card--support">
+            <div className="home-v2-icon">🩺</div>
+            <h3>Нормативные документы</h3>
+            <p>Официальные положения и файлы платформы — список ведётся администратором в базе данных.</p>
+          </Link>
+          
           <Link to="/methodical-materials" className="home-v2-card home-v2-card--docs">
             <div className="home-v2-icon">📘</div>
             <h3>Методические материалы</h3>
@@ -107,12 +124,6 @@ export default function HomePage() {
             <div className="home-v2-icon">✨</div>
             <h3>Передовая педагогика</h3>
             <p>Лучшие практики, современные подходы и интерактивные методики для занятий.</p>
-          </Link>
-
-          <Link to="/normative-documents" className="home-v2-card home-v2-card--support">
-            <div className="home-v2-icon">🩺</div>
-            <h3>Нормативные документы</h3>
-            <p>Официальные положения и файлы платформы — список ведётся администратором в базе данных.</p>
           </Link>
 
           <Link to={coursesPath} className="home-v2-card home-v2-card--courses">
@@ -134,8 +145,7 @@ export default function HomePage() {
             <div className="home-v2-icon">🏆</div>
             <h3>Конкурсы и олимпиады</h3>
             <p>Повышайте результаты аттестации через участие в республиканских конкурсах.</p>
-            <div className="home-v2-date-wrap">
-            </div>
+            <span className="home-v2-cta">Перейти к олимпиадам</span>
           </Link>
         </section>
 
@@ -201,7 +211,16 @@ export default function HomePage() {
         </section> */}
 
         <footer className="home-v2-footer">
-          <div>
+          <div className="home-v2-footer-brand">
+            <img
+              src={urkerproLogo}
+              alt=""
+              className="home-v2-footer-logo"
+              width={160}
+              height={64}
+              decoding="async"
+              aria-hidden
+            />
             <h4>UrkerPro</h4>
             <p>Единый стандарт цифровой инфраструктуры и профессионального роста педагогов.</p>
           </div>

@@ -32,6 +32,7 @@ public static class SchemaPatcher
             await EnsureLearningsAccessExpiresAsync(db, cancellationToken);
             await EnsurePaymentsExtendedColumnsAsync(db, cancellationToken);
             await EnsureAuditLogsTableAsync(db, cancellationToken);
+            await EnsureUserDiplomasTableAsync(db, cancellationToken);
         }
         finally
         {
@@ -252,8 +253,9 @@ public static class SchemaPatcher
     }
 
     /// <summary>
-    /// Перенос записей, которые по смыслу относятся к методическим материалам,
-    /// но были ошибочно сохранены в NormativeDocuments.
+    /// Перенос всех legacy-записей из NormativeDocuments в AdditionalMaterials.
+    /// Нужен для разведения разделов после исторической путаницы в админке.
+    /// Выполняется идемпотентно: дубли в AdditionalMaterials не создаются.
     /// </summary>
     private static async Task MigrateLegacyMethodicalRowsFromNormativeDocumentsAsync(AppDbContext db, CancellationToken cancellationToken)
     {
@@ -263,31 +265,12 @@ public static class SchemaPatcher
             return;
         }
 
-        const string whereClause =
-            """
-            (
-                LOWER(`Title`) LIKE '%родител%' OR
-                LOWER(`Description`) LIKE '%родител%' OR
-                LOWER(`Title`) LIKE '%адаптац%' OR
-                LOWER(`Description`) LIKE '%адаптац%' OR
-                LOWER(`Title`) LIKE '%шаблон%' OR
-                LOWER(`Description`) LIKE '%шаблон%' OR
-                LOWER(`Title`) LIKE '%материал%' OR
-                LOWER(`Description`) LIKE '%материал%' OR
-                LOWER(`Title`) LIKE '%рекомендац%' OR
-                LOWER(`Description`) LIKE '%рекомендац%' OR
-                LOWER(`Title`) LIKE '%ссылк%' OR
-                LOWER(`Description`) LIKE '%ссылк%'
-            )
-            """;
-
         await db.Database.ExecuteSqlRawAsync(
-            $"""
+            """
             INSERT INTO `AdditionalMaterials` (`Title`, `Description`, `Url`, `AttachedFileName`, `AttachedFileRelativePath`, `CreatedAtUtc`)
             SELECT nd.`Title`, nd.`Description`, nd.`Url`, nd.`AttachedFileName`, nd.`AttachedFileRelativePath`, nd.`CreatedAtUtc`
             FROM `NormativeDocuments` nd
-            WHERE {whereClause}
-              AND NOT EXISTS (
+            WHERE NOT EXISTS (
                 SELECT 1 FROM `AdditionalMaterials` am
                 WHERE am.`Title` = nd.`Title`
                   AND am.`Description` = nd.`Description`
@@ -297,9 +280,8 @@ public static class SchemaPatcher
             cancellationToken);
 
         await db.Database.ExecuteSqlRawAsync(
-            $"""
-            DELETE FROM `NormativeDocuments`
-            WHERE {whereClause};
+            """
+            DELETE FROM `NormativeDocuments`;
             """,
             cancellationToken);
     }
@@ -589,6 +571,33 @@ public static class SchemaPatcher
 
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX `IX_AuditLogs_CreatedAtUtc` ON `AuditLogs` (`CreatedAtUtc`);",
+            cancellationToken);
+    }
+
+    private static async Task EnsureUserDiplomasTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (await TableExistsAsync(db, "UserDiplomas", cancellationToken))
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE `UserDiplomas` (
+                `Id` int NOT NULL AUTO_INCREMENT,
+                `AccountId` int NOT NULL,
+                `OriginalFileName` varchar(260) CHARACTER SET utf8mb4 NOT NULL,
+                `RelativePath` varchar(512) CHARACTER SET utf8mb4 NOT NULL,
+                `UploadedAtUtc` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                CONSTRAINT `PK_UserDiplomas` PRIMARY KEY (`Id`),
+                CONSTRAINT `FK_UserDiplomas_Accounts_AccountId`
+                    FOREIGN KEY (`AccountId`) REFERENCES `Accounts` (`Id`) ON DELETE CASCADE
+            ) CHARACTER SET=utf8mb4;
+            """,
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX `IX_UserDiplomas_AccountId_UploadedAtUtc` ON `UserDiplomas` (`AccountId`, `UploadedAtUtc`);",
             cancellationToken);
     }
 

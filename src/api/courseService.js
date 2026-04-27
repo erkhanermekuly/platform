@@ -212,6 +212,19 @@ export const authAPI = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+
+  listMyDiplomas: async () => request('/auth/me/diplomas', { method: 'GET' }),
+
+  uploadMyDiploma: async (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request('/auth/me/diplomas', {
+      method: 'POST',
+      body: fd,
+    });
+  },
+
+  deleteMyDiploma: async (id) => request(`/auth/me/diplomas/${id}`, { method: 'DELETE' }),
 };
 
 export const learningAPI = {

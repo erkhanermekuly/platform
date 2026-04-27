@@ -308,14 +308,14 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
             <AdminResourceManager
               title="📘 Методические материалы"
               subtitle="Этот раздел видят все пользователи на отдельной странице."
-              listApi={resourcesAPI.documents.list}
-              createApi={resourcesAPI.documents.create}
-              updateApi={resourcesAPI.documents.update}
-              deleteApi={resourcesAPI.documents.remove}
-              emptyLabel="Пока нет документов"
-              attachmentUploadApi={resourcesAPI.documents.uploadAttachment}
-              attachmentRemoveApi={resourcesAPI.documents.removeAttachment}
-              attachmentDownload={(id, name) => downloadResourceAttachedFile('documents', id, name)}
+              listApi={resourcesAPI.materials.list}
+              createApi={resourcesAPI.materials.create}
+              updateApi={resourcesAPI.materials.update}
+              deleteApi={resourcesAPI.materials.remove}
+              emptyLabel="Пока нет материалов"
+              attachmentUploadApi={resourcesAPI.materials.uploadAttachment}
+              attachmentRemoveApi={resourcesAPI.materials.removeAttachment}
+              attachmentDownload={(id, name) => downloadResourceAttachedFile('materials', id, name)}
             />
             <AdminResourceManager
               title="🧩 Передовой педагогический опыт"
@@ -328,15 +328,12 @@ const AdminPanel = ({ courses, onAddCourse, onDeleteCourse }) => {
             />
             <AdminResourceManager
               title="🗂️ Консультации и поддержка"
-              subtitle="Отдельная таблица и отдельный каталог материалов."
-              listApi={resourcesAPI.materials.list}
-              createApi={resourcesAPI.materials.create}
-              updateApi={resourcesAPI.materials.update}
-              deleteApi={resourcesAPI.materials.remove}
-              emptyLabel="Пока нет материалов"
-              attachmentUploadApi={resourcesAPI.materials.uploadAttachment}
-              attachmentRemoveApi={resourcesAPI.materials.removeAttachment}
-              attachmentDownload={(id, name) => downloadResourceAttachedFile('materials', id, name)}
+              subtitle="Отдельная таблица консультаций без файловых вложений."
+              listApi={resourcesAPI.consultations.list}
+              createApi={resourcesAPI.consultations.create}
+              updateApi={resourcesAPI.consultations.update}
+              deleteApi={resourcesAPI.consultations.remove}
+              emptyLabel="Пока нет консультаций"
             />
           </div>
         </div>
