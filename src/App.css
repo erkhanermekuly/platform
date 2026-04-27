@@ -45,23 +45,23 @@ main {
 
 @media (max-width: 768px) {
   :root {
-    --main-inline-pad: 20px;
+    --main-inline-pad: 14px;
   }
 
   main {
-    min-height: calc(100vh - 70px);
-    min-height: calc(100dvh - 70px);
+    min-height: calc(100vh - 56px);
+    min-height: calc(100dvh - 56px);
   }
 }
 
 @media (max-width: 480px) {
   :root {
-    --main-inline-pad: 16px;
+    --main-inline-pad: 10px;
   }
 
   main {
-    min-height: calc(100vh - 60px);
-    min-height: calc(100dvh - 60px);
+    min-height: calc(100vh - 48px);
+    min-height: calc(100dvh - 48px);
   }
 }
 

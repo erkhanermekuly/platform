@@ -264,7 +264,7 @@
 
 @media (max-width: 768px) {
   .courseCard {
-    border-radius: 18px;
+    border-radius: 14px;
   }
 
   .body {
@@ -277,6 +277,30 @@
 }
 
 @media (max-width: 480px) {
+  .courseCard,
+  .body,
+  .title,
+  .description {
+    min-width: 0;
+  }
+
+  .imageWrap {
+    height: auto;
+    aspect-ratio: 16 / 10;
+    padding-bottom: 0;
+  }
+
+  .metaRow,
+  .footerMeta,
+  .fileRow {
+    flex-wrap: wrap;
+  }
+
+  .cta {
+    min-height: 44px;
+    padding: 12px 14px;
+  }
+
   .statusBadge {
     width: 36px;
     height: 36px;

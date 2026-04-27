@@ -3588,3 +3588,362 @@
     position: static;
   }
 }
+
+/* Mobile hardening shared by long content pages */
+@media (max-width: 768px) {
+  .home-v2-page,
+  .courses-page,
+  .course-details-page,
+  .my-learning-page,
+  .api-check-page,
+  .admin-tools-page,
+  .crs-page,
+  .crs-cat-page,
+  .crs-player-page {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .home-v2-page {
+    padding: 12px 0 28px;
+  }
+
+  .home-v2-shell {
+    box-shadow: 0 8px 26px rgba(28, 49, 95, 0.08);
+  }
+
+  .home-v2-card,
+  .home-v2-news,
+  .home-v2-news-slide,
+  .home-v2-banner,
+  .resource-card,
+  .resource-list-card,
+  .course-card,
+  .filters,
+  .no-results,
+  .stat-card,
+  .learning-item,
+  .crs-cat-card,
+  .crs-cat-side,
+  .crs-cat-cta,
+  .crs-player-video-card,
+  .crs-player-aside-card,
+  .crs-syllabus-row,
+  .crs-player-instructor-card {
+    border-radius: 14px;
+  }
+
+  .home-v2-card,
+  .resource-card,
+  .resource-list-card,
+  .filters,
+  .course-info,
+  .no-results,
+  .learning-item,
+  .stat-card,
+  .crs-player-aside-card {
+    padding: 16px;
+  }
+
+  .home-v2-hero {
+    margin-bottom: 18px;
+  }
+
+  .home-v2-hero-logo {
+    height: clamp(72px, 27vw, 118px);
+  }
+
+  .home-v2-hero h1,
+  .hero-content h1,
+  .course-header-info h1,
+  .page-header h1,
+  .crs-page-title,
+  .crs-cat-title,
+  .crs-player-aside-title {
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .home-v2-date-wrap,
+  .course-footer,
+  .course-stats,
+  .course-meta,
+  .resource-toolbar,
+  .resource-pagination,
+  .crs-cat-side-foot,
+  .crs-cat-card-footer,
+  .crs-player-aside-stats {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-v2-date-wrap span,
+  .resource-search,
+  .resource-filter,
+  .resource-page-numbers,
+  .course-footer .btn,
+  .learning-actions .btn,
+  .crs-player-btn,
+  .crs-player-primary-cta {
+    width: 100%;
+  }
+
+  .hero-section {
+    margin-left: calc(-1 * var(--main-inline-pad, 14px));
+    margin-right: calc(-1 * var(--main-inline-pad, 14px));
+    width: calc(100% + 2 * var(--main-inline-pad, 14px));
+    border-radius: 0 0 18px 18px;
+    margin-bottom: 36px;
+  }
+
+  .hero-image svg {
+    max-height: 260px;
+  }
+
+  .features-section,
+  .popular-courses-section,
+  .resources-section {
+    margin-bottom: 48px;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .feature-card {
+    padding: 22px 16px;
+    border-radius: 14px;
+  }
+
+  .course-header-section {
+    margin-left: calc(-1 * var(--main-inline-pad, 14px));
+    margin-right: calc(-1 * var(--main-inline-pad, 14px));
+    margin-bottom: 24px;
+    border-radius: 0;
+  }
+
+  .course-header-content {
+    gap: 22px;
+  }
+
+  .course-hero-image {
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+
+  .course-breadcrumb,
+  .course-meta-info {
+    min-width: 0;
+  }
+
+  .course-content {
+    padding: 22px 0;
+  }
+
+  .course-tabs {
+    margin-left: calc(-1 * var(--main-inline-pad, 14px));
+    margin-right: calc(-1 * var(--main-inline-pad, 14px));
+    width: calc(100% + 2 * var(--main-inline-pad, 14px));
+    top: 56px;
+  }
+
+  .tab-content h2 {
+    font-size: 22px;
+  }
+
+  .module-header,
+  .lesson,
+  .review-header,
+  .instructor-card,
+  .crs-player-instructor-card,
+  .crs-syllabus-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .module-info,
+  .review-rating {
+    width: 100%;
+  }
+
+  .curriculum-sidebar {
+    max-height: 45dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .learning-filters {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+
+  .learning-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-btn {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 10px 14px;
+    white-space: nowrap;
+  }
+
+  .learning-actions,
+  .quick-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .learning-actions,
+  .quick-actions,
+  .sort-controls {
+    flex-direction: column;
+  }
+
+  .learning-image {
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+
+  .learning-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .resource-page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .resource-page-numbers {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .admin-tools-table-wrap,
+  .api-check-page {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .crs-search-card {
+    border-radius: 16px;
+  }
+
+  .crs-featured,
+  .crs-cat-featured {
+    grid-template-columns: 1fr;
+  }
+
+  .crs-player-shell {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .crs-player-video-card {
+    margin-left: calc(-1 * var(--main-inline-pad, 14px));
+    margin-right: calc(-1 * var(--main-inline-pad, 14px));
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
+
+  .crs-player-lesson-below {
+    padding: 16px 14px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .courses-page,
+  .my-learning-page,
+  .api-check-page,
+  .admin-tools-page {
+    padding-top: 12px;
+  }
+
+  .home-v2-shell {
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .home-v2-card {
+    min-height: 0;
+  }
+
+  .home-v2-banner-image {
+    min-height: 130px;
+  }
+
+  .courses-container {
+    gap: 18px;
+  }
+
+  .filters {
+    padding: 14px;
+  }
+
+  .courses-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+  }
+
+  .course-image-wrapper {
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+
+  .course-badge {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    text-align: center;
+  }
+
+  .stats,
+  .course-meta {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .page-header {
+    margin-bottom: 24px;
+  }
+
+  .completed-badge,
+  .quick-actions button,
+  .view-all .btn,
+  .crs-cat-cta-btn {
+    width: 100%;
+  }
+
+  .review-form,
+  .instructor-card,
+  .curriculum-hint,
+  .crs-syllabus-hint,
+  .crs-player-instructor-card {
+    padding: 16px;
+  }
+
+  .crs-player-poster-play {
+    width: 64px;
+    height: 64px;
+  }
+
+  .crs-player-poster-play-inner {
+    font-size: 24px;
+  }
+
+  .crs-syllabus-row {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .crs-syllabus-icon {
+    width: 36px;
+    height: 36px;
+  }
+}

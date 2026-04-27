@@ -191,6 +191,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   background-color: white;
   border-radius: 8px;
@@ -202,6 +203,8 @@
   color: #1f2937;
   font-weight: 500;
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .removeFileButton {
@@ -582,7 +585,8 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
 }
 
 .modal {
@@ -655,7 +659,7 @@
 
 @media (max-width: 768px) {
   .adminPanel {
-    padding: 20px;
+    padding: 20px 14px;
   }
 
   .formSection,
@@ -670,11 +674,30 @@
   .form {
     gap: 16px;
   }
+
+  .fileInputWrapper,
+  .inlineLessonRow2,
+  .modalActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .addFileButton,
+  .inlineAddLessonBtn,
+  .modalCancel {
+    width: 100%;
+  }
+
+  .courseItem,
+  .fileItem,
+  .inlineLessonListItem {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 480px) {
   .adminPanel {
-    padding: 12px;
+    padding: 12px 10px;
   }
 
   .formSection,
@@ -694,5 +717,16 @@
   .courseThumbnail {
     width: 50px;
     height: 50px;
+  }
+
+  .input,
+  .textarea,
+  .select {
+    font-size: 16px;
+  }
+
+  .modal {
+    padding: 16px;
+    border-radius: 14px;
   }
 }

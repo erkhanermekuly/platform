@@ -1626,3 +1626,73 @@
     flex: none;
   }
 }
+
+@media (max-width: 720px) {
+  .olym-root,
+  .olym-shell,
+  .olym-catalog-shell,
+  .olym-test-shell {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .olym-hero,
+  .olym-card,
+  .olym-form-panel,
+  .olym-q-card,
+  .olym-result-panel,
+  .olym-cat-hero,
+  .olym-cat-card,
+  .olym-test-card {
+    border-radius: 14px;
+  }
+
+  .olym-hero-meta,
+  .olym-card-actions,
+  .olym-doc-actions,
+  .olym-cat-hero-meta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .olym-pill,
+  .olym-btn,
+  .olym-cat-hero-pill,
+  .olym-cat-btn {
+    width: 100%;
+  }
+
+  .olym-table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .olym-root {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .olym-hero,
+  .olym-card-body,
+  .olym-form-panel,
+  .olym-result-panel,
+  .olym-cat-card-body,
+  .olym-test-card {
+    padding: 16px;
+  }
+
+  .olym-title,
+  .olym-cat-title,
+  .olym-test-title,
+  .olym-q-text {
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .olym-card-media,
+  .olym-cat-card-media {
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+}

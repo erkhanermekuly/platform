@@ -1105,12 +1105,45 @@ button.profile-user-diploma-link:hover {
 }
 
 @media (max-width: 760px) {
+  .profile-page,
+  .profile-admin-shell,
+  .profile-user-shell,
+  .profile-user-main,
+  .profile-user-content {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
   .profile-admin-toolbar {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-admin-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-admin-header h1 {
+    font-size: clamp(1.6rem, 8vw, 2.25rem);
+    line-height: 1.12;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-admin-header p,
+  .profile-admin-user {
+    overflow-wrap: anywhere;
   }
 
   .profile-admin-actions {
     flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .profile-admin-actions button,
+  .profile-user-settings-actions button,
+  .profile-user-settings-actions a {
+    flex: 1 1 160px;
   }
 
   .profile-admin-stats {
@@ -1119,6 +1152,7 @@ button.profile-user-diploma-link:hover {
 
   .profile-admin-table-wrap {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .profile-admin-table {
@@ -1217,6 +1251,14 @@ button.profile-user-diploma-link:hover {
     padding-top: 0;
   }
 
+  .profile-admin-main {
+    padding: 14px;
+  }
+
+  .profile-admin-header h1 {
+    font-size: clamp(1.45rem, 7vw, 1.75rem);
+  }
+
   .profile-user-shell {
     gap: 10px;
   }
@@ -1251,12 +1293,14 @@ button.profile-user-diploma-link:hover {
 
   .profile-user-hero-actions {
     width: 100%;
+    flex-direction: column;
   }
 
   .profile-user-hero-actions button,
   .profile-user-hero-actions a {
     font-size: 11px;
     padding: 8px 10px;
+    width: 100%;
   }
 
   .profile-user-tabs button {
@@ -1279,6 +1323,21 @@ button.profile-user-diploma-link:hover {
 
   .profile-list-row .profile-badge,
   .profile-list-row .profile-progress {
-    align-self: flex-end;
+    align-self: stretch;
+  }
+
+  .profile-admin-actions button,
+  .profile-user-settings-actions button,
+  .profile-user-settings-actions a,
+  .profile-link-btn {
+    width: 100%;
+  }
+
+  .profile-section-card,
+  .profile-user-sidebar,
+  .profile-user-card,
+  .profile-user-pro,
+  .profile-user-kpis article {
+    border-radius: 12px;
   }
 }
