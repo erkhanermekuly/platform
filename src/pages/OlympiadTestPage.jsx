@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { olympiadsAPI } from '../api/courseService';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,16 @@ function formatDate(value) {
 }
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+const TEST_DURATION_SEC = 3600;
+
+function formatOlympTestCountdown(totalSec) {
+  const sec = Math.max(0, Math.floor(Number(totalSec) || 0));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 export default function OlympiadTestPage() {
   const { id } = useParams();
@@ -39,6 +49,10 @@ export default function OlympiadTestPage() {
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [docBusy, setDocBusy] = useState(null);
+
+  const testDeadlineRef = useRef(null);
+  const autoSubmitTriggeredRef = useRef(false);
+  const [secondsLeft, setSecondsLeft] = useState(TEST_DURATION_SEC);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,7 +115,7 @@ export default function OlympiadTestPage() {
   }, [data, answeredCount]);
 
   const toggleAnswer = (questionId, answerId) => {
-    if (result) return;
+    if (result || secondsLeft <= 0) return;
     setSelected((prev) => {
       const current = new Set(prev[questionId] || []);
       if (current.has(answerId)) current.delete(answerId);
@@ -110,7 +124,7 @@ export default function OlympiadTestPage() {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!data?.questions?.length) return;
     const answers = data.questions.map((q) => ({
       questionId: q.id,
@@ -130,11 +144,45 @@ export default function OlympiadTestPage() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [data, id, selected]);
+
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+
+  useEffect(() => {
+    testDeadlineRef.current = null;
+    autoSubmitTriggeredRef.current = false;
+    setSecondsLeft(TEST_DURATION_SEC);
+  }, [id]);
+
+  useEffect(() => {
+    if (!data?.questions?.length || result) {
+      return undefined;
+    }
+    if (testDeadlineRef.current === null) {
+      testDeadlineRef.current = Date.now() + TEST_DURATION_SEC * 1000;
+    }
+    const tick = () => {
+      const deadline = testDeadlineRef.current;
+      if (deadline == null) return;
+      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left <= 0 && !autoSubmitTriggeredRef.current) {
+        autoSubmitTriggeredRef.current = true;
+        void handleSubmitRef.current();
+      }
+    };
+    tick();
+    const intervalId = setInterval(tick, 1000);
+    return () => clearInterval(intervalId);
+  }, [data?.questions?.length, result]);
 
   const resetLocalPreview = () => {
     setResult(null);
     setSelected({});
+    testDeadlineRef.current = null;
+    autoSubmitTriggeredRef.current = false;
+    setSecondsLeft(TEST_DURATION_SEC);
   };
 
   const downloadOlympiadDoc = async (kind) => {
@@ -414,9 +462,15 @@ export default function OlympiadTestPage() {
                   <div className="olym-test-progress-fill" style={{ width: `${progressPct}%` }} />
                 </div>
               </div>
-              <div className="olym-test-timer-pill" title="Ограничение по времени не задано">
+              <div
+                className={`olym-test-timer-pill${
+                  secondsLeft > 0 && secondsLeft <= 300 ? ' olymp-test-timer-pill--warn' : ''
+                }${secondsLeft <= 0 ? ' olymp-test-timer-pill--done' : ''}`}
+                title="На прохождение даётся 1 час с момента открытия теста"
+                aria-live="polite"
+              >
                 <span aria-hidden>🕐</span>
-                <span>Без лимита</span>
+                <span>{formatOlympTestCountdown(secondsLeft)}</span>
               </div>
             </div>
 
@@ -432,6 +486,7 @@ export default function OlympiadTestPage() {
                   const letter = LETTERS[ai] ?? '?';
                   const inputId = `olym-a-${currentQuestion.id}-${a.id}`;
                   let optCls = 'olym-test-opt';
+                  if (secondsLeft <= 0) optCls += ' olymp-test-opt--blocked';
                   if (isSelected) optCls += ' olymp-test-opt--sel';
                   return (
                     <label key={a.id} htmlFor={inputId} className={optCls}>
@@ -440,6 +495,7 @@ export default function OlympiadTestPage() {
                         className="olym-test-check"
                         type="checkbox"
                         checked={isSelected}
+                        disabled={secondsLeft <= 0}
                         onChange={() => toggleAnswer(currentQuestion.id, a.id)}
                       />
                       <span className="olym-test-opt-letter" aria-hidden>

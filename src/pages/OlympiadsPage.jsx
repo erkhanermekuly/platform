@@ -194,7 +194,7 @@ export default function OlympiadsPage() {
                       <div className="olym-cat-hero-meta">
                         <span>Дата: {formatOlympiadDate(featuredPrimary.createdAtUtc)}</span>
                         <span>Вопросов: {featuredPrimary.questionsCount ?? 0}</span>
-                        <span>{featuredPrimary.myCompleted ? '✓ Пройдено' : 'Участие бесплатно'}</span>
+                        <span>{featuredPrimary.myCompleted ? '✓ Пройдено' : 'Участие 3000тг'}</span>
                       </div>
                     </div>
                   </Link>
