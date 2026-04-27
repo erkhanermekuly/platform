@@ -82,9 +82,67 @@ public class ProcessPaymentDto
 
     public decimal? Amount { get; set; }
 
+    [MaxLength(2048)]
+    public string? ReturnUrl { get; set; }
+
     [MaxLength(120)]
     public string? CardHolder { get; set; }
 
     [MaxLength(30)]
     public string? CardNumber { get; set; }
+}
+
+public class UrkerPaymentCreateRequestDto
+{
+    public int LocalPaymentId { get; set; }
+
+    public int AccountId { get; set; }
+
+    public string AccountName { get; set; } = string.Empty;
+
+    public string AccountEmail { get; set; } = string.Empty;
+
+    public int CourseId { get; set; }
+
+    public string CourseTitle { get; set; } = string.Empty;
+
+    public decimal Amount { get; set; }
+
+    public string ReturnUrl { get; set; } = string.Empty;
+
+    public string WebhookUrl { get; set; } = string.Empty;
+
+    public string WebhookSecret { get; set; } = string.Empty;
+}
+
+public class UrkerPaymentCreateResponseDto
+{
+    public bool Success { get; set; }
+
+    public string? RedirectUrl { get; set; }
+
+    public string? PaymentId { get; set; }
+
+    public string? TransactionId { get; set; }
+
+    public string? Message { get; set; }
+}
+
+public class UrkerPaymentWebhookDto
+{
+    public string? Secret { get; set; }
+
+    public string? PaymentId { get; set; }
+
+    public string? LocalPaymentId { get; set; }
+
+    public string? TransactionId { get; set; }
+
+    public string? Status { get; set; }
+
+    public decimal? Amount { get; set; }
+
+    public int? CourseId { get; set; }
+
+    public int? AccountId { get; set; }
 }
