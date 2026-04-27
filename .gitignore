@@ -73,3 +73,5 @@ server/docker-compose.override.yml
 
 # Entity Framework Migrations snapshots (опционально)
 /server/Migrations/*Snapshot.cs
+/publish/server
+/deploy-artifacts
