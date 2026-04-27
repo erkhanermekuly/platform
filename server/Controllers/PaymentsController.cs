@@ -24,7 +24,7 @@ public class PaymentsController(AppDbContext context, UrkerPaymentService urkerP
             return Unauthorized(ApiResponse.Error("Пользователь не авторизован"));
         }
 
-        var course = await context.Courses.AsNoTracking().FirstOrDefaultAsync(c => c.Id == dto.CourseId);
+        var course = await context.Courses.FirstOrDefaultAsync(c => c.Id == dto.CourseId, cancellationToken);
         if (course is null || !course.IsPublished)
         {
             return NotFound(ApiResponse.Error("Курс не найден или недоступен"));
@@ -36,7 +36,7 @@ public class PaymentsController(AppDbContext context, UrkerPaymentService urkerP
         }
 
         var hasPaid = await context.Payments.AnyAsync(p =>
-            p.AccountId == userId && p.CourseId == course.Id && p.Status == "completed");
+            p.AccountId == userId && p.CourseId == course.Id && p.Status == "completed", cancellationToken);
         if (hasPaid)
         {
             return BadRequest(ApiResponse.Error("Оплата по этому курсу уже зафиксирована."));
@@ -56,7 +56,7 @@ public class PaymentsController(AppDbContext context, UrkerPaymentService urkerP
 
         context.Payments.Add(payment);
 
-        var learning = await context.Learnings.FirstOrDefaultAsync(x => x.AccountId == userId && x.CourseId == course.Id);
+        var learning = await context.Learnings.FirstOrDefaultAsync(x => x.AccountId == userId && x.CourseId == course.Id, cancellationToken);
         if (learning is null)
         {
             context.Learnings.Add(new LearningModel
@@ -70,13 +70,13 @@ public class PaymentsController(AppDbContext context, UrkerPaymentService urkerP
             course.IsLocked = false;
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(new
         {
             paymentId = payment.Id,
             paymentStatus = payment.Status,
-            transactionId = urkerResponse.TransactionId ?? payment.TransactionId,
+            transactionId = payment.TransactionId,
             courseId = course.Id,
             amount = payment.Amount,
             paidAt = payment.PaidAt

@@ -27,7 +27,7 @@ public static class SchemaPatcher
             await EnsureOlympiadsTablesAsync(db, cancellationToken);
             await EnsureOlympiadAttemptsTableAsync(db, cancellationToken);
             await EnsureOlympiadAttemptsExtraColumnsAsync(db, cancellationToken);
-            await EnsureAccountsIsBlockedAsync(db, cancellationToken);
+            await EnsureAccountsExtendedColumnsAsync(db, cancellationToken);
             await EnsureCoursesExtendedColumnsAsync(db, cancellationToken);
             await EnsureLearningsAccessExpiresAsync(db, cancellationToken);
             await EnsurePaymentsExtendedColumnsAsync(db, cancellationToken);
@@ -97,6 +97,11 @@ public static class SchemaPatcher
 
     private static async Task EnsureCourseFilesLessonIdAsync(AppDbContext db, CancellationToken cancellationToken)
     {
+        if (!await TableExistsAsync(db, "CourseFiles", cancellationToken))
+        {
+            return;
+        }
+
         var hasColumn = await ColumnExistsAsync(db, "CourseFiles", "LessonId", cancellationToken);
         if (hasColumn)
         {
@@ -428,11 +433,18 @@ public static class SchemaPatcher
             cancellationToken);
     }
 
-    private static async Task EnsureAccountsIsBlockedAsync(AppDbContext db, CancellationToken cancellationToken)
+    private static async Task EnsureAccountsExtendedColumnsAsync(AppDbContext db, CancellationToken cancellationToken)
     {
         if (!await TableExistsAsync(db, "Accounts", cancellationToken))
         {
             return;
+        }
+
+        if (!await ColumnExistsAsync(db, "Accounts", "Role", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Accounts` ADD COLUMN `Role` varchar(20) CHARACTER SET utf8mb4 NOT NULL DEFAULT 'student';",
+                cancellationToken);
         }
 
         if (!await ColumnExistsAsync(db, "Accounts", "IsBlocked", cancellationToken))
@@ -448,6 +460,41 @@ public static class SchemaPatcher
         if (!await TableExistsAsync(db, "Courses", cancellationToken))
         {
             return;
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "IsLocked", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `IsLocked` tinyint(1) NOT NULL DEFAULT 0;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "VideoUrl", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `VideoUrl` varchar(1024) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "InstructorAvatar", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `InstructorAvatar` varchar(1024) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "InstructorBio", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `InstructorBio` varchar(2000) CHARACTER SET utf8mb4 NULL;",
+                cancellationToken);
+        }
+
+        if (!await ColumnExistsAsync(db, "Courses", "CreatedByAccountId", cancellationToken))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE `Courses` ADD COLUMN `CreatedByAccountId` int NULL;",
+                cancellationToken);
         }
 
         if (!await ColumnExistsAsync(db, "Courses", "IsPublished", cancellationToken))

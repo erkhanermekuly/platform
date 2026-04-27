@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import CourseCard from '../components/CourseCard/CourseCard';
@@ -35,13 +35,13 @@ export default function CoursesPage() {
   const {
     courses,
     purchasedCourses,
-    buyCourse,
     addCourse,
     deleteCourse,
+    dispatch,
     coursesLoading,
     coursesError,
   } = useContext(AppContext);
-  const { userRole } = useAuth();
+  const { isAuthenticated, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -66,22 +66,8 @@ export default function CoursesPage() {
   };
 
   const handlePaymentConfirm = (courseId) => {
-    buyCourse(courseId);
-    alert('✅ Спасибо за покупку! Курс разблокирован.');
-  };
-
-  if (userRole === 'admin' && location.pathname === '/courses') {
-    return <Navigate to="/admin/courses" replace />;
-  }
-
-  const handlePaymentConfirm = async (course) => {
-    if (!course) return;
-    try {
-      await purchaseCourse(course.id, course.price);
-      alert('✅ Оплата принята. Откройте курс — в программе доступен первый урок.');
-    } catch (e) {
-      alert(e?.message || 'Не удалось провести оплату');
-    }
+    dispatch({ type: 'BUY_COURSE', payload: Number(courseId) });
+    alert('✅ Оплата принята. Откройте курс — в программе доступен первый урок.');
   };
 
   const handleAddCourse = async (courseData) => {
@@ -270,6 +256,7 @@ export default function CoursesPage() {
         }}
         onConfirm={handlePaymentConfirm}
       />
+      </div>
     </div>
   );
 }

@@ -50,6 +50,14 @@ const PaymentModal = ({ isOpen, course, onClose, onConfirm }) => {
         return;
       }
 
+      if (data?.paymentStatus === 'completed' || data?.status === 'completed') {
+        setStatusText('Оплата подтверждена. Курс разблокирован.');
+        onConfirm(course.id);
+        setIsProcessing(false);
+        window.setTimeout(() => onClose(), 1200);
+        return;
+      }
+
       if (!data?.paymentId || !data?.redirectUrl) {
         throw new Error('Сервис оплаты не вернул ссылку на Kaspi');
       }
