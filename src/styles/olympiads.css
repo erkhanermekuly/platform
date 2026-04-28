@@ -1665,12 +1665,64 @@
   .olym-table-wrap {
     -webkit-overflow-scrolling: touch;
   }
+
+  .olym-root:not(.olym-test-exp) {
+    padding-top: 28px;
+  }
+
+  .olym-hero {
+    padding: 18px 16px;
+    margin-bottom: 18px;
+  }
+
+  .olym-title {
+    font-size: clamp(1.45rem, 8vw, 2rem);
+    line-height: 1.12;
+    overflow-wrap: anywhere;
+  }
+
+  .olym-rating {
+    margin-top: 24px;
+  }
+
+  .olym-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: 14px;
+  }
+
+  .olym-table {
+    min-width: 680px;
+  }
+
+  .olym-table th,
+  .olym-table td {
+    padding: 10px 12px;
+    vertical-align: top;
+  }
+
+  .olym-admin-row-actions,
+  .olym-admin-bonus-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .olym-admin-row-actions .olym-btn,
+  .olym-admin-bonus-form .olym-btn,
+  .olym-admin-bonus-input {
+    width: 100%;
+    max-width: none;
+  }
 }
 
 @media (max-width: 480px) {
   .olym-root {
     padding-left: 10px;
     padding-right: 10px;
+  }
+
+  .olym-root:not(.olym-test-exp) {
+    padding-top: 34px;
   }
 
   .olym-hero,
@@ -1694,5 +1746,58 @@
   .olym-cat-card-media {
     height: auto;
     aspect-ratio: 16 / 9;
+  }
+
+  .olym-back {
+    margin-bottom: 14px;
+  }
+
+  .olym-rating-title {
+    font-size: 17px;
+  }
+
+  .olym-rating-sub {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 640px) {
+  .olym-root.olym-test-exp {
+    padding-top: 12px;
+  }
+
+  .olym-test-pagehead {
+    margin-bottom: 12px;
+  }
+
+  .olym-test-status {
+    gap: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 14px;
+  }
+
+  .olym-test-status-left {
+    flex: 0 0 auto;
+    gap: 2px;
+  }
+
+  .olym-test-status-mid {
+    flex: 0 0 auto;
+  }
+
+  .olym-test-status-mid-row {
+    margin-bottom: 6px;
+  }
+
+  .olym-test-timer-pill {
+    padding: 8px 12px;
+  }
+
+  .olym-test-main-card {
+    padding: 16px 14px 18px;
+    margin-bottom: 12px;
+    border-radius: 16px;
   }
 }

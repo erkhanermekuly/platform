@@ -28,11 +28,11 @@
 .home-v2-hero {
   text-align: center;
   max-width: 760px;
-  margin: 0 auto 28px;
+  margin: 0 auto 24px;
 }
 
 .home-v2-hero-brand {
-  margin: 0 auto 24px;
+  margin: 0 auto 12px;
   display: flex;
   justify-content: center;
   align-items: center;

@@ -1114,6 +1114,10 @@ button.profile-user-diploma-link:hover {
     overflow-x: clip;
   }
 
+  .profile-page {
+    padding-top: 22px;
+  }
+
   .profile-admin-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -1248,7 +1252,7 @@ button.profile-user-diploma-link:hover {
 
 @media (max-width: 560px) {
   .profile-page {
-    padding-top: 0;
+    padding-top: 30px;
   }
 
   .profile-admin-main {
@@ -1269,6 +1273,10 @@ button.profile-user-diploma-link:hover {
     gap: 10px;
   }
 
+  .profile-user-brand {
+    padding-bottom: 10px;
+  }
+
   .profile-user-main {
     gap: 10px;
   }
@@ -1276,19 +1284,35 @@ button.profile-user-diploma-link:hover {
   .profile-user-hero {
     padding: 10px;
     border-radius: 14px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .profile-user-avatar {
+    width: 86px;
+    height: 86px;
+    font-size: 30px;
   }
 
   .profile-user-tag {
     font-size: 10px;
     padding: 3px 8px;
+    margin-bottom: 8px;
   }
 
   .profile-user-hero h1 {
     font-size: 1.55rem;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
   }
 
   .profile-user-hero p {
     font-size: 13px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .profile-user-hero-actions {
@@ -1299,7 +1323,8 @@ button.profile-user-diploma-link:hover {
   .profile-user-hero-actions button,
   .profile-user-hero-actions a {
     font-size: 11px;
-    padding: 8px 10px;
+    min-height: 42px;
+    padding: 10px 12px;
     width: 100%;
   }
 
