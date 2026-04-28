@@ -5,6 +5,27 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/olympiads.css';
 
 const emptyForm = { title: '', description: '' };
+const POLYMAT_URL = 'https://urkerplatform.kz/';
+
+function isPolymatOlympiad(o) {
+  return /полимат|polimat/i.test(`${o?.title || ''} ${o?.description || ''}`);
+}
+
+function OlympiadLink({ olympiad, className, children }) {
+  if (isPolymatOlympiad(olympiad)) {
+    return (
+      <a className={className} href={POLYMAT_URL}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link className={className} to={`/olympiads/${olympiad.id}`}>
+      {children}
+    </Link>
+  );
+}
 
 
 function textMatchesCategory(o, catId) {
@@ -181,7 +202,7 @@ export default function OlympiadsPage() {
             <section className="olym-cat-featured">
               {featuredPrimary ? (
                 <div className="olym-cat-hero-wrap">
-                  <Link className="olym-cat-hero" to={`/olympiads/${featuredPrimary.id}`}>
+                  <OlympiadLink olympiad={featuredPrimary} className="olym-cat-hero">
                     <div className="olym-cat-hero-bg" />
                     <div className="olym-cat-hero-overlay" />
                     <div className="olym-cat-hero-inner">
@@ -197,7 +218,7 @@ export default function OlympiadsPage() {
                         <span>{featuredPrimary.myCompleted ? '✓ Пройдено' : 'Участие 3000тг'}</span>
                       </div>
                     </div>
-                  </Link>
+                  </OlympiadLink>
                   {isAdmin ? (
                     <div className="olym-cat-featured-admin">
                       <Link className="olym-cat-card-admin-link" to={`/admin/olympiads/${featuredPrimary.id}/questions`}>
@@ -235,9 +256,9 @@ export default function OlympiadsPage() {
                         <dd>Бесплатно</dd>
                       </div>
                     </dl>
-                    <Link className="olym-cat-side-cta" to={`/olympiads/${featuredSecondary.id}`}>
+                    <OlympiadLink olympiad={featuredSecondary} className="olym-cat-side-cta">
                       Зарегистрироваться
-                    </Link>
+                    </OlympiadLink>
                   </aside>
                   {isAdmin ? (
                     <div className="olym-cat-featured-admin">
@@ -269,7 +290,7 @@ export default function OlympiadsPage() {
                   const qn = o.questionsCount ?? 0;
                   return (
                     <article key={o.id} className="olym-cat-card">
-                      <Link to={`/olympiads/${o.id}`} className="olym-cat-card-link">
+                      <OlympiadLink olympiad={o} className="olym-cat-card-link">
                         <div className="olym-cat-card-media olymp-cat-card-media--empty">
                           <span aria-hidden>OLY</span>
                         </div>
@@ -281,7 +302,7 @@ export default function OlympiadsPage() {
                             <span className="olym-cat-card-price">{done ? 'Готово' : 'Бесплатно'}</span>
                           </div>
                         </div>
-                      </Link>
+                      </OlympiadLink>
                       {isAdmin ? (
                         <div className="olym-cat-card-admin">
                           <Link className="olym-cat-card-admin-link" to={`/admin/olympiads/${o.id}/questions`}>
