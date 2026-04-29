@@ -118,7 +118,7 @@ export default function HomePage() {
 
           <Link to="/resources/scenarios" className="home-v2-card home-v2-card--pedagogy">
             <div className="home-v2-icon">✨</div>
-            <h3>Передовая педагогика</h3>
+            <h3>Передовой педогоический опыт</h3>
             <p>Лучшие практики, современные подходы и интерактивные методики для занятий.</p>
           </Link>
 
